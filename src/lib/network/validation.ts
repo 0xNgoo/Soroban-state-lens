@@ -30,11 +30,31 @@ export function validateRpcUrl(url: string): ValidationResult {
     }
   }
 
+  // Check for completely malformed URLs (no protocol)
+  if (!trimmedUrl.includes('://')) {
+    return {
+      isValid: false,
+      error: 'Invalid URL format',
+    }
+  }
+
   // Check protocol
   if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
     return {
       isValid: false,
       error: 'URL must start with http:// or https://',
+    }
+  }
+
+  // Manual port validation before URL constructor since it throws on invalid ports
+  const portMatch = trimmedUrl.match(/:(\d+)(?:\/|$)/)
+  if (portMatch) {
+    const port = parseInt(portMatch[1], 10)
+    if (port < 1 || port > 65535) {
+      return {
+        isValid: false,
+        error: 'Port must be between 1 and 65535',
+      }
     }
   }
 
@@ -91,17 +111,6 @@ export function validateRpcUrl(url: string): ValidationResult {
     // URL constructor throws on invalid URLs
     // Check specific error cases for better error messages
     if (
-      trimmedUrl.includes('://') &&
-      !trimmedUrl.startsWith('http://') &&
-      !trimmedUrl.startsWith('https://')
-    ) {
-      return {
-        isValid: false,
-        error: 'URL must start with http:// or https://',
-      }
-    }
-
-    if (
       trimmedUrl.endsWith('://') ||
       (trimmedUrl.startsWith('https://') && trimmedUrl.length === 8) ||
       (trimmedUrl.startsWith('http://') && trimmedUrl.length === 7)
@@ -109,6 +118,17 @@ export function validateRpcUrl(url: string): ValidationResult {
       return {
         isValid: false,
         error: 'Invalid hostname',
+      }
+    }
+
+    if (
+      trimmedUrl.includes('://') &&
+      !trimmedUrl.startsWith('http://') &&
+      !trimmedUrl.startsWith('https://')
+    ) {
+      return {
+        isValid: false,
+        error: 'URL must start with http:// or https://',
       }
     }
 

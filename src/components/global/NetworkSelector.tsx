@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 
+import { validateRpcUrl } from '../../lib/network/validation'
 import { useLensStore } from '../../store/lensStore'
 import { DEFAULT_NETWORKS } from '../../store/types'
 
