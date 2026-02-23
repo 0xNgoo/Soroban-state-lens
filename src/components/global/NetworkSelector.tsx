@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react'
 
 import { useLensStore } from '../../store/lensStore'
+import {
+  selectNetworkConfig,
+  selectSetNetworkConfig,
+} from '../../store/selectors'
 import { DEFAULT_NETWORKS } from '../../store/types'
 
 import type { NetworkConfig } from '../../store/types'
@@ -24,8 +28,8 @@ export default function NetworkSelector() {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const networkConfig = useLensStore((state) => state.networkConfig)
-  const setNetworkConfig = useLensStore((state) => state.setNetworkConfig)
+  const networkConfig = useLensStore(selectNetworkConfig)
+  const setNetworkConfig = useLensStore(selectSetNetworkConfig)
 
   // Determine current selection based on networkId
   const currentNetwork =
