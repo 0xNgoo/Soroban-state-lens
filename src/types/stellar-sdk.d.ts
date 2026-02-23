@@ -4,7 +4,7 @@ declare module '@stellar/stellar-sdk' {
   export namespace rpc {
     export class Server {
       constructor(url: string)
-      getLedgerEntries(...keys: any[]): Promise<any>
+      getLedgerEntries(...keys: Array<any>): Promise<any>
     }
     export namespace Api {
       export type LedgerEntryResult = any
