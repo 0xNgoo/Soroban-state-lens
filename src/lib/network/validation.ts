@@ -95,8 +95,6 @@ export function validateRpcUrl(url: string): ValidationResult {
       }
     }
 
-<<<<<<< HEAD
-=======
     // Optional: Validate port if specified
     if (parsedUrl.port) {
       const portNum = parseInt(parsedUrl.port, 10)
@@ -108,35 +106,26 @@ export function validateRpcUrl(url: string): ValidationResult {
       }
     }
 
->>>>>>> dc5b73348eea541593ec4cd60ffbf3fc49dc43e2
     return { isValid: true }
   } catch (error) {
     // URL constructor throws on invalid URLs
     // Check specific error cases for better error messages
-<<<<<<< HEAD
-    if (trimmedUrl.endsWith('://') || (trimmedUrl.startsWith('https://') && trimmedUrl.length === 8) || (trimmedUrl.startsWith('http://') && trimmedUrl.length === 7)) {
-=======
     if (
       trimmedUrl.endsWith('://') ||
       (trimmedUrl.startsWith('https://') && trimmedUrl.length === 8) ||
       (trimmedUrl.startsWith('http://') && trimmedUrl.length === 7)
     ) {
->>>>>>> dc5b73348eea541593ec4cd60ffbf3fc49dc43e2
       return {
         isValid: false,
         error: 'Invalid hostname',
       }
     }
 
-<<<<<<< HEAD
-    if (trimmedUrl.includes('://') && !trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-=======
     if (
       trimmedUrl.includes('://') &&
       !trimmedUrl.startsWith('http://') &&
       !trimmedUrl.startsWith('https://')
     ) {
->>>>>>> dc5b73348eea541593ec4cd60ffbf3fc49dc43e2
       return {
         isValid: false,
         error: 'URL must start with http:// or https://',
