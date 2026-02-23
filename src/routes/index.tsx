@@ -1,5 +1,5 @@
-import SearchLandingScreen from '@/components/Home/SearchLandingScreen'
 import { createFileRoute } from '@tanstack/react-router'
+import SearchLandingScreen from '@/components/Home/SearchLandingScreen'
 
 export const Route = createFileRoute('/')({
   component: App,
