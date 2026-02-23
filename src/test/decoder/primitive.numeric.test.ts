@@ -99,7 +99,6 @@ describe('normalizeScVal - Numeric Primitives', () => {
         ScValType.SCV_U128,
         ScValType.SCV_I128,
         ScValType.SCV_BYTES,
-        ScValType.SCV_VEC,
         ScValType.SCV_MAP,
       ]
 
