@@ -11,7 +11,7 @@ import type { LensStore } from '../../store/types'
  * @returns The count of unique expanded node IDs.
  */
 export function selectExpandedNodeCount(state: LensStore): number {
-  if (!Array.isArray(state?.expandedNodes)) {
+  if (!Array.isArray(state.expandedNodes)) {
     return 0
   }
 
