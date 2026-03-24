@@ -1,18 +1,18 @@
-import { NetworkConfig } from './types'
+import type { NetworkConfig } from './types'
 
 /**
  * Validates a partial network config patch.
  * Ensures only known keys are present and values have the correct types.
  *
  * @param input The input to validate (unknown)
- * @returns { valid: boolean; patch?: Partial<NetworkConfig>; errors?: string[] }
+ * @returns { valid: boolean; patch?: Partial<NetworkConfig>; errors?: Array<string> }
  */
 export function validateNetworkConfigPatch(input: unknown): {
   valid: boolean
   patch?: Partial<NetworkConfig>
-  errors?: string[]
+  errors?: Array<string>
 } {
-  const errors: string[] = []
+  const errors: Array<string> = []
 
   if (input === null || typeof input !== 'object' || Array.isArray(input)) {
     return {
@@ -23,7 +23,7 @@ export function validateNetworkConfigPatch(input: unknown): {
 
   const patch = input as Record<string, unknown>
   const validatedPatch: Partial<NetworkConfig> = {}
-  const allowedKeys: (keyof NetworkConfig)[] = [
+  const allowedKeys: Array<keyof NetworkConfig> = [
     'networkId',
     'networkPassphrase',
     'rpcUrl',

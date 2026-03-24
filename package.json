@@ -22,7 +22,11 @@
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
-    "check:env": "node scripts/check-env.js"
+    "check:env": "node scripts/check-env.js",
+    "issues:build": "node scripts/github-issues.mjs build",
+    "issues:list": "node scripts/github-issues.mjs list",
+    "issues:labels": "node scripts/github-issues.mjs labels",
+    "issues:publish": "node scripts/github-issues.mjs publish"
   },
   "dependencies": {
     "@stellar/design-system": "^3.2.7",

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { withWorkerPingTimeout } from '../../workers/withWorkerPingTimeout'
 
 describe('withWorkerPingTimeout', () => {
@@ -17,7 +17,7 @@ describe('withWorkerPingTimeout', () => {
     }
 
     const promise = withWorkerPingTimeout(mockWorker, 5000)
-    
+
     // Fast-forward time not needed here because it should resolve immediately or within the ping promise
     const result = await promise
 
@@ -58,7 +58,7 @@ describe('withWorkerPingTimeout', () => {
 
     // Advance timers by less than 10000ms
     vi.advanceTimersByTime(5000)
-    
+
     // It should still be pending
     // To check if it's pending, we can't easily wait, so we'll just advance to 10000
     vi.advanceTimersByTime(5000)

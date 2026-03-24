@@ -1,0 +1,3377 @@
+{
+  "generatedAt": "2026-03-24T20:26:53.931Z",
+  "count": 75,
+  "issues": [
+    {
+      "id": "SSL-D01",
+      "title": "Restore Vitest browser test startup",
+      "phase": 0,
+      "area": "qa",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [],
+      "problem": "The repo exits before test collection because the browser test environment crashes on a jsdom and ESM mismatch.",
+      "context": "Build and lint pass, and several test files already exist, but npm test fails before any test runs.",
+      "scopeIn": [
+        "Make the configured browser test environment boot successfully.",
+        "Keep the existing test command working."
+      ],
+      "scopeOut": [
+        "No new product features.",
+        "No broad test rewrite."
+      ],
+      "checklist": [
+        "Identify the failing dependency path.",
+        "Adjust config or dependency versions to remove the startup crash.",
+        "Confirm existing suites execute again."
+      ],
+      "acceptance": [
+        "Vitest collects current test files instead of failing during environment startup.",
+        "The current html-encoding-sniffer ESM error is gone."
+      ],
+      "verification": [
+        "Run npm test.",
+        "Confirm tests are collected and executed.",
+        "Confirm the previous startup error no longer appears."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:0",
+        "area:qa",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nRestore Vitest browser test startup\n\n2. Problem / Why\nThe repo exits before test collection because the browser test environment crashes on a jsdom and ESM mismatch.\n\n3. Current Product Context\nBuild and lint pass, and several test files already exist, but npm test fails before any test runs.\n\n4. Scope In\n- Make the configured browser test environment boot successfully.\n- Keep the existing test command working.\n\n5. Scope Out\n- No new product features.\n- No broad test rewrite.\n\n6. Implementation Checklist\n- Identify the failing dependency path.\n- Adjust config or dependency versions to remove the startup crash.\n- Confirm existing suites execute again.\n\n7. Acceptance Criteria\n- Vitest collects current test files instead of failing during environment startup.\n- The current html-encoding-sniffer ESM error is gone.\n\n8. Verification Steps\n- Run npm test.\n- Confirm tests are collected and executed.\n- Confirm the previous startup error no longer appears.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:0\n- area:qa\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D02",
+      "title": "Add storage key and serializer for saved network config",
+      "phase": 1,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "Network choice resets on reload.",
+      "context": "The selector updates in-memory state only.",
+      "scopeIn": [
+        "Add one storage key.",
+        "Serialize preset and custom RPC values safely."
+      ],
+      "scopeOut": [
+        "No UI changes.",
+        "No ledger-data persistence."
+      ],
+      "checklist": [
+        "Define the stored shape.",
+        "Add serialize and parse helpers.",
+        "Fall back safely on malformed payloads."
+      ],
+      "acceptance": [
+        "Saved preset and custom values can round-trip.",
+        "Malformed payloads fall back safely."
+      ],
+      "verification": [
+        "Save a preset and reload.",
+        "Save a custom RPC and reload.",
+        "Inject bad JSON and confirm fallback."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd storage key and serializer for saved network config\n\n2. Problem / Why\nNetwork choice resets on reload.\n\n3. Current Product Context\nThe selector updates in-memory state only.\n\n4. Scope In\n- Add one storage key.\n- Serialize preset and custom RPC values safely.\n\n5. Scope Out\n- No UI changes.\n- No ledger-data persistence.\n\n6. Implementation Checklist\n- Define the stored shape.\n- Add serialize and parse helpers.\n- Fall back safely on malformed payloads.\n\n7. Acceptance Criteria\n- Saved preset and custom values can round-trip.\n- Malformed payloads fall back safely.\n\n8. Verification Steps\n- Save a preset and reload.\n- Save a custom RPC and reload.\n- Inject bad JSON and confirm fallback.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D03",
+      "title": "Hydrate saved network config on app start",
+      "phase": 1,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D02"
+      ],
+      "problem": "Persistence is incomplete if the app never restores the saved selection.",
+      "context": "Startup always falls back to the default network.",
+      "scopeIn": [
+        "Read saved network config during startup.",
+        "Initialize state from valid saved data."
+      ],
+      "scopeOut": [
+        "No new selector UI.",
+        "No connection testing."
+      ],
+      "checklist": [
+        "Read the persisted payload once during initialization.",
+        "Validate it with the serializer from the previous issue.",
+        "Fall back to the default network on invalid data."
+      ],
+      "acceptance": [
+        "Reloading restores the last valid network selection.",
+        "Invalid stored payloads fall back to the default network without throwing."
+      ],
+      "verification": [
+        "Save a preset network and reload.",
+        "Save a custom RPC and reload.",
+        "Place invalid JSON in storage and confirm safe fallback."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nHydrate saved network config on app start\n\n2. Problem / Why\nPersistence is incomplete if the app never restores the saved selection.\n\n3. Current Product Context\nStartup always falls back to the default network.\n\n4. Scope In\n- Read saved network config during startup.\n- Initialize state from valid saved data.\n\n5. Scope Out\n- No new selector UI.\n- No connection testing.\n\n6. Implementation Checklist\n- Read the persisted payload once during initialization.\n- Validate it with the serializer from the previous issue.\n- Fall back to the default network on invalid data.\n\n7. Acceptance Criteria\n- Reloading restores the last valid network selection.\n- Invalid stored payloads fall back to the default network without throwing.\n\n8. Verification Steps\n- Save a preset network and reload.\n- Save a custom RPC and reload.\n- Place invalid JSON in storage and confirm safe fallback.\n\n9. Dependencies\n- SSL-D02\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D04",
+      "title": "Replace the landing placeholder with a contract-entry empty state",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "The landing route still shows placeholder copy.",
+      "context": "The shell, lookup input, and network selector exist, but the route body does not guide the first action.",
+      "scopeIn": [
+        "Add a simple product summary.",
+        "Point users toward entering a contract ID."
+      ],
+      "scopeOut": [
+        "No fetch pipeline.",
+        "No marketing page redesign."
+      ],
+      "checklist": [
+        "Replace placeholder text.",
+        "Add a short product explanation.",
+        "Keep the state responsive inside the existing shell."
+      ],
+      "acceptance": [
+        "Visiting / shows useful product context.",
+        "The page no longer renders placeholder text."
+      ],
+      "verification": [
+        "Run the app and visit /.",
+        "Confirm desktop and mobile layouts stay intact."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nReplace the landing placeholder with a contract-entry empty state\n\n2. Problem / Why\nThe landing route still shows placeholder copy.\n\n3. Current Product Context\nThe shell, lookup input, and network selector exist, but the route body does not guide the first action.\n\n4. Scope In\n- Add a simple product summary.\n- Point users toward entering a contract ID.\n\n5. Scope Out\n- No fetch pipeline.\n- No marketing page redesign.\n\n6. Implementation Checklist\n- Replace placeholder text.\n- Add a short product explanation.\n- Keep the state responsive inside the existing shell.\n\n7. Acceptance Criteria\n- Visiting / shows useful product context.\n- The page no longer renders placeholder text.\n\n8. Verification Steps\n- Run the app and visit /.\n- Confirm desktop and mobile layouts stay intact.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D05",
+      "title": "Show a custom RPC input when Custom network is selected",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "The selector advertises Custom mode but has no endpoint field.",
+      "context": "Choosing Custom does not reveal any editable RPC input today.",
+      "scopeIn": [
+        "Render one text input for a custom RPC URL.",
+        "Show it only when Custom is active."
+      ],
+      "scopeOut": [
+        "No validation logic.",
+        "No connection testing."
+      ],
+      "checklist": [
+        "Detect Custom selection.",
+        "Render the endpoint input in the selector flow.",
+        "Preserve typed input while the selector stays open."
+      ],
+      "acceptance": [
+        "Choosing Custom reveals an editable RPC field.",
+        "Switching back to a preset hides the field without breaking preset selection."
+      ],
+      "verification": [
+        "Open the selector and choose Custom.",
+        "Type a URL.",
+        "Switch away and back and confirm predictable behavior."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nShow a custom RPC input when Custom network is selected\n\n2. Problem / Why\nThe selector advertises Custom mode but has no endpoint field.\n\n3. Current Product Context\nChoosing Custom does not reveal any editable RPC input today.\n\n4. Scope In\n- Render one text input for a custom RPC URL.\n- Show it only when Custom is active.\n\n5. Scope Out\n- No validation logic.\n- No connection testing.\n\n6. Implementation Checklist\n- Detect Custom selection.\n- Render the endpoint input in the selector flow.\n- Preserve typed input while the selector stays open.\n\n7. Acceptance Criteria\n- Choosing Custom reveals an editable RPC field.\n- Switching back to a preset hides the field without breaking preset selection.\n\n8. Verification Steps\n- Open the selector and choose Custom.\n- Type a URL.\n- Switch away and back and confirm predictable behavior.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D06",
+      "title": "Add a custom RPC URL validator",
+      "phase": 1,
+      "area": "network",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D05"
+      ],
+      "problem": "Malformed custom endpoints will produce confusing failures later.",
+      "context": "The app needs a focused rule for what counts as a valid RPC URL.",
+      "scopeIn": [
+        "Validate trimmed HTTP and HTTPS URLs.",
+        "Return a clear valid or invalid result."
+      ],
+      "scopeOut": [
+        "No network call.",
+        "No UI rendering beyond the validator result."
+      ],
+      "checklist": [
+        "Trim whitespace.",
+        "Reject empty strings and unsupported protocols.",
+        "Accept standard http and https URLs."
+      ],
+      "acceptance": [
+        "Common valid RPC URLs pass.",
+        "Malformed URLs fail with test coverage for both cases."
+      ],
+      "verification": [
+        "Add tests for blank strings.",
+        "Add tests for ftp URLs.",
+        "Add tests for valid Soroban RPC URLs."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:network",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a custom RPC URL validator\n\n2. Problem / Why\nMalformed custom endpoints will produce confusing failures later.\n\n3. Current Product Context\nThe app needs a focused rule for what counts as a valid RPC URL.\n\n4. Scope In\n- Validate trimmed HTTP and HTTPS URLs.\n- Return a clear valid or invalid result.\n\n5. Scope Out\n- No network call.\n- No UI rendering beyond the validator result.\n\n6. Implementation Checklist\n- Trim whitespace.\n- Reject empty strings and unsupported protocols.\n- Accept standard http and https URLs.\n\n7. Acceptance Criteria\n- Common valid RPC URLs pass.\n- Malformed URLs fail with test coverage for both cases.\n\n8. Verification Steps\n- Add tests for blank strings.\n- Add tests for ftp URLs.\n- Add tests for valid Soroban RPC URLs.\n\n9. Dependencies\n- SSL-D05\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:network\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D07",
+      "title": "Disable custom RPC save when the URL is invalid",
+      "phase": 1,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D06"
+      ],
+      "problem": "Users should not be able to commit an invalid endpoint into app state.",
+      "context": "The selector is gaining a custom field and validator but still needs an interaction guard.",
+      "scopeIn": [
+        "Block the apply action for invalid Custom input.",
+        "Render a disabled state."
+      ],
+      "scopeOut": [
+        "No network call.",
+        "No retry logic."
+      ],
+      "checklist": [
+        "Wire the validator into the selector UI.",
+        "Disable the action for invalid input.",
+        "Leave preset options unaffected."
+      ],
+      "acceptance": [
+        "Invalid Custom input cannot be applied.",
+        "Valid Custom input and preset choices still work."
+      ],
+      "verification": [
+        "Enter an invalid URL and confirm the action is disabled.",
+        "Enter a valid URL and confirm the action becomes available."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nDisable custom RPC save when the URL is invalid\n\n2. Problem / Why\nUsers should not be able to commit an invalid endpoint into app state.\n\n3. Current Product Context\nThe selector is gaining a custom field and validator but still needs an interaction guard.\n\n4. Scope In\n- Block the apply action for invalid Custom input.\n- Render a disabled state.\n\n5. Scope Out\n- No network call.\n- No retry logic.\n\n6. Implementation Checklist\n- Wire the validator into the selector UI.\n- Disable the action for invalid input.\n- Leave preset options unaffected.\n\n7. Acceptance Criteria\n- Invalid Custom input cannot be applied.\n- Valid Custom input and preset choices still work.\n\n8. Verification Steps\n- Enter an invalid URL and confirm the action is disabled.\n- Enter a valid URL and confirm the action becomes available.\n\n9. Dependencies\n- SSL-D06\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D08",
+      "title": "Add a getLatestLedger connection-check helper",
+      "phase": 1,
+      "area": "network",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "A lightweight connectivity check is needed before trusting a custom endpoint.",
+      "context": "The app has no minimal RPC probe yet.",
+      "scopeIn": [
+        "Call the Soroban RPC getLatestLedger method.",
+        "Return a small success or error result."
+      ],
+      "scopeOut": [
+        "No polling loop.",
+        "No contract data fetches."
+      ],
+      "checklist": [
+        "Build the JSON-RPC request payload.",
+        "Parse the success response minimally.",
+        "Normalize obvious network and request failures."
+      ],
+      "acceptance": [
+        "A reachable endpoint returns a ledger result.",
+        "Unreachable or malformed endpoints return a handled failure result."
+      ],
+      "verification": [
+        "Run the helper against a known good endpoint.",
+        "Run it against a bad endpoint or mocked failure."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:network",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a getLatestLedger connection-check helper\n\n2. Problem / Why\nA lightweight connectivity check is needed before trusting a custom endpoint.\n\n3. Current Product Context\nThe app has no minimal RPC probe yet.\n\n4. Scope In\n- Call the Soroban RPC getLatestLedger method.\n- Return a small success or error result.\n\n5. Scope Out\n- No polling loop.\n- No contract data fetches.\n\n6. Implementation Checklist\n- Build the JSON-RPC request payload.\n- Parse the success response minimally.\n- Normalize obvious network and request failures.\n\n7. Acceptance Criteria\n- A reachable endpoint returns a ledger result.\n- Unreachable or malformed endpoints return a handled failure result.\n\n8. Verification Steps\n- Run the helper against a known good endpoint.\n- Run it against a bad endpoint or mocked failure.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:network\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D09",
+      "title": "Add network connection status state",
+      "phase": 1,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D08"
+      ],
+      "problem": "The UI needs explicit lifecycle state for endpoint diagnostics.",
+      "context": "There is no dedicated connection-status field in global state today.",
+      "scopeIn": [
+        "Add idle, loading, success, and error state.",
+        "Expose update and reset actions."
+      ],
+      "scopeOut": [
+        "No selector layout changes.",
+        "No persistence of diagnostic history."
+      ],
+      "checklist": [
+        "Add the status enum to state.",
+        "Add actions to set and reset it.",
+        "Keep the default state idle."
+      ],
+      "acceptance": [
+        "The store can represent a full connection-check lifecycle.",
+        "Status updates do not mutate unrelated network fields."
+      ],
+      "verification": [
+        "Exercise the new actions in store tests.",
+        "Confirm status transitions do not affect selected endpoint values."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd network connection status state\n\n2. Problem / Why\nThe UI needs explicit lifecycle state for endpoint diagnostics.\n\n3. Current Product Context\nThere is no dedicated connection-status field in global state today.\n\n4. Scope In\n- Add idle, loading, success, and error state.\n- Expose update and reset actions.\n\n5. Scope Out\n- No selector layout changes.\n- No persistence of diagnostic history.\n\n6. Implementation Checklist\n- Add the status enum to state.\n- Add actions to set and reset it.\n- Keep the default state idle.\n\n7. Acceptance Criteria\n- The store can represent a full connection-check lifecycle.\n- Status updates do not mutate unrelated network fields.\n\n8. Verification Steps\n- Exercise the new actions in store tests.\n- Confirm status transitions do not affect selected endpoint values.\n\n9. Dependencies\n- SSL-D08\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D10",
+      "title": "Add a Test connection action for custom RPC",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D08",
+        "SSL-D09"
+      ],
+      "problem": "Users need a deliberate way to verify a custom RPC before relying on it.",
+      "context": "Validation and connectivity helpers are landing separately, but the selector still lacks a trigger.",
+      "scopeIn": [
+        "Add one test-connection trigger.",
+        "Update and render the existing status state."
+      ],
+      "scopeOut": [
+        "No automatic polling.",
+        "No save-on-success behavior."
+      ],
+      "checklist": [
+        "Add the trigger to the selector flow.",
+        "Set status to loading during the request.",
+        "Render success and error feedback from the result."
+      ],
+      "acceptance": [
+        "Clicking Test connection produces visible loading and success or error states.",
+        "Testing an endpoint does not silently save it."
+      ],
+      "verification": [
+        "Test a good endpoint in the UI.",
+        "Test a bad endpoint in the UI.",
+        "Confirm the status transitions are accurate."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a Test connection action for custom RPC\n\n2. Problem / Why\nUsers need a deliberate way to verify a custom RPC before relying on it.\n\n3. Current Product Context\nValidation and connectivity helpers are landing separately, but the selector still lacks a trigger.\n\n4. Scope In\n- Add one test-connection trigger.\n- Update and render the existing status state.\n\n5. Scope Out\n- No automatic polling.\n- No save-on-success behavior.\n\n6. Implementation Checklist\n- Add the trigger to the selector flow.\n- Set status to loading during the request.\n- Render success and error feedback from the result.\n\n7. Acceptance Criteria\n- Clicking Test connection produces visible loading and success or error states.\n- Testing an endpoint does not silently save it.\n\n8. Verification Steps\n- Test a good endpoint in the UI.\n- Test a bad endpoint in the UI.\n- Confirm the status transitions are accurate.\n\n9. Dependencies\n- SSL-D08\n- SSL-D09\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D11",
+      "title": "Add a contract ID validator helper",
+      "phase": 1,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "Contract lookup should reject malformed values before routing or network work begins.",
+      "context": "The lookup input currently accepts arbitrary text.",
+      "scopeIn": [
+        "Validate Soroban contract IDs.",
+        "Return a clear pass or fail result."
+      ],
+      "scopeOut": [
+        "No navigation.",
+        "No contract fetch."
+      ],
+      "checklist": [
+        "Trim input.",
+        "Reject blank and malformed values.",
+        "Accept valid contract IDs using Soroban rules."
+      ],
+      "acceptance": [
+        "Valid contract IDs pass.",
+        "Malformed or blank inputs fail with focused tests."
+      ],
+      "verification": [
+        "Add tests for valid contract IDs.",
+        "Add tests for blank input.",
+        "Add tests for random strings and malformed values."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a contract ID validator helper\n\n2. Problem / Why\nContract lookup should reject malformed values before routing or network work begins.\n\n3. Current Product Context\nThe lookup input currently accepts arbitrary text.\n\n4. Scope In\n- Validate Soroban contract IDs.\n- Return a clear pass or fail result.\n\n5. Scope Out\n- No navigation.\n- No contract fetch.\n\n6. Implementation Checklist\n- Trim input.\n- Reject blank and malformed values.\n- Accept valid contract IDs using Soroban rules.\n\n7. Acceptance Criteria\n- Valid contract IDs pass.\n- Malformed or blank inputs fail with focused tests.\n\n8. Verification Steps\n- Add tests for valid contract IDs.\n- Add tests for blank input.\n- Add tests for random strings and malformed values.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D12",
+      "title": "Add a submit button to the contract lookup input",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "The lookup still needs a visible primary action.",
+      "context": "The header input exists and supports the keyboard focus shortcut, but it has no dedicated submit control.",
+      "scopeIn": [
+        "Add one submit button.",
+        "Use the same submit path as Enter."
+      ],
+      "scopeOut": [
+        "No validation messaging.",
+        "No routing behavior."
+      ],
+      "checklist": [
+        "Wrap the lookup in a form or submit handler.",
+        "Add a clear button label or icon.",
+        "Keep the focus shortcut working."
+      ],
+      "acceptance": [
+        "The lookup shows a visible submit action.",
+        "Clicking the button and pressing Enter trigger the same submit path."
+      ],
+      "verification": [
+        "Type text in the lookup.",
+        "Click the button.",
+        "Press Enter and confirm the same submit flow fires."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a submit button to the contract lookup input\n\n2. Problem / Why\nThe lookup still needs a visible primary action.\n\n3. Current Product Context\nThe header input exists and supports the keyboard focus shortcut, but it has no dedicated submit control.\n\n4. Scope In\n- Add one submit button.\n- Use the same submit path as Enter.\n\n5. Scope Out\n- No validation messaging.\n- No routing behavior.\n\n6. Implementation Checklist\n- Wrap the lookup in a form or submit handler.\n- Add a clear button label or icon.\n- Keep the focus shortcut working.\n\n7. Acceptance Criteria\n- The lookup shows a visible submit action.\n- Clicking the button and pressing Enter trigger the same submit path.\n\n8. Verification Steps\n- Type text in the lookup.\n- Click the button.\n- Press Enter and confirm the same submit flow fires.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D13",
+      "title": "Show an inline contract ID validation message",
+      "phase": 1,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D11",
+        "SSL-D12"
+      ],
+      "problem": "Invalid contract input should fail near the field.",
+      "context": "Lookup has no field-level feedback today.",
+      "scopeIn": [
+        "Show one inline validation message near the input.",
+        "Clear the message when input becomes valid."
+      ],
+      "scopeOut": [
+        "No async fetch errors.",
+        "No route-level error boundary work."
+      ],
+      "checklist": [
+        "Run the contract validator on submit or blur.",
+        "Surface a short message.",
+        "Clear the message after correction."
+      ],
+      "acceptance": [
+        "Invalid contract input shows a clear message.",
+        "Valid input clears the message and does not show an error."
+      ],
+      "verification": [
+        "Submit a blank or malformed contract ID.",
+        "Confirm the message appears.",
+        "Enter a valid contract ID and confirm it clears."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nShow an inline contract ID validation message\n\n2. Problem / Why\nInvalid contract input should fail near the field.\n\n3. Current Product Context\nLookup has no field-level feedback today.\n\n4. Scope In\n- Show one inline validation message near the input.\n- Clear the message when input becomes valid.\n\n5. Scope Out\n- No async fetch errors.\n- No route-level error boundary work.\n\n6. Implementation Checklist\n- Run the contract validator on submit or blur.\n- Surface a short message.\n- Clear the message after correction.\n\n7. Acceptance Criteria\n- Invalid contract input shows a clear message.\n- Valid input clears the message and does not show an error.\n\n8. Verification Steps\n- Submit a blank or malformed contract ID.\n- Confirm the message appears.\n- Enter a valid contract ID and confirm it clears.\n\n9. Dependencies\n- SSL-D11\n- SSL-D12\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D14",
+      "title": "Scaffold the explorer route for a contract",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "Contract submit cannot land anywhere meaningful until the explorer route exists.",
+      "context": "The repo only has the root route and an SDS demo route today.",
+      "scopeIn": [
+        "Add /contracts/:contractId/explorer.",
+        "Render minimal contract-context placeholder content."
+      ],
+      "scopeOut": [
+        "No real fetch pipeline.",
+        "No tree rendering."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Read the contract ID param.",
+        "Render a minimal contract-aware shell."
+      ],
+      "acceptance": [
+        "Visiting the explorer route renders a stable page.",
+        "The route shows active contract context."
+      ],
+      "verification": [
+        "Open the route directly in the browser.",
+        "Refresh it and confirm it still resolves."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the explorer route for a contract\n\n2. Problem / Why\nContract submit cannot land anywhere meaningful until the explorer route exists.\n\n3. Current Product Context\nThe repo only has the root route and an SDS demo route today.\n\n4. Scope In\n- Add /contracts/:contractId/explorer.\n- Render minimal contract-context placeholder content.\n\n5. Scope Out\n- No real fetch pipeline.\n- No tree rendering.\n\n6. Implementation Checklist\n- Create the route.\n- Read the contract ID param.\n- Render a minimal contract-aware shell.\n\n7. Acceptance Criteria\n- Visiting the explorer route renders a stable page.\n- The route shows active contract context.\n\n8. Verification Steps\n- Open the route directly in the browser.\n- Refresh it and confirm it still resolves.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D15",
+      "title": "Navigate to explorer after a valid contract submit",
+      "phase": 1,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D11",
+        "SSL-D14"
+      ],
+      "problem": "Lookup is incomplete unless valid input moves the user into contract context.",
+      "context": "The app has a lookup shell and will have validation and an explorer route, but submit still needs routing behavior.",
+      "scopeIn": [
+        "On valid submit, route to the explorer page.",
+        "Keep invalid submit on the current page."
+      ],
+      "scopeOut": [
+        "No fetch pipeline.",
+        "No recent contract history."
+      ],
+      "checklist": [
+        "Wire the submit handler to the router.",
+        "Pass the validated contract ID into the route param.",
+        "Preserve invalid-input behavior."
+      ],
+      "acceptance": [
+        "Valid contract submit navigates to the explorer route.",
+        "Invalid submit never changes the route."
+      ],
+      "verification": [
+        "Submit a valid contract ID and confirm navigation.",
+        "Submit an invalid value and confirm the route does not change."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:1",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNavigate to explorer after a valid contract submit\n\n2. Problem / Why\nLookup is incomplete unless valid input moves the user into contract context.\n\n3. Current Product Context\nThe app has a lookup shell and will have validation and an explorer route, but submit still needs routing behavior.\n\n4. Scope In\n- On valid submit, route to the explorer page.\n- Keep invalid submit on the current page.\n\n5. Scope Out\n- No fetch pipeline.\n- No recent contract history.\n\n6. Implementation Checklist\n- Wire the submit handler to the router.\n- Pass the validated contract ID into the route param.\n- Preserve invalid-input behavior.\n\n7. Acceptance Criteria\n- Valid contract submit navigates to the explorer route.\n- Invalid submit never changes the route.\n\n8. Verification Steps\n- Submit a valid contract ID and confirm navigation.\n- Submit an invalid value and confirm the route does not change.\n\n9. Dependencies\n- SSL-D11\n- SSL-D14\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:1\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D16",
+      "title": "Define a normalized node union with path and raw metadata",
+      "phase": 2,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [],
+      "problem": "The decoder needs a stable typed output before more complex ScVal support can be added safely.",
+      "context": "Primitive normalization currently returns JSON-like values that are too lossy for tree rendering and diffs.",
+      "scopeIn": [
+        "Define primitive and container node shapes.",
+        "Keep stable path and raw fallback metadata."
+      ],
+      "scopeOut": [
+        "No UI rendering.",
+        "No schema overlay."
+      ],
+      "checklist": [
+        "Define the union types.",
+        "Include unsupported and truncation cases.",
+        "Avoid any escape hatches."
+      ],
+      "acceptance": [
+        "The type model covers current primitive output plus containers and fallback nodes.",
+        "Future decoder work can use the model without broad casting."
+      ],
+      "verification": [
+        "Compile against the new type model.",
+        "Add focused type or unit tests for representative node shapes."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:2",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nDefine a normalized node union with path and raw metadata\n\n2. Problem / Why\nThe decoder needs a stable typed output before more complex ScVal support can be added safely.\n\n3. Current Product Context\nPrimitive normalization currently returns JSON-like values that are too lossy for tree rendering and diffs.\n\n4. Scope In\n- Define primitive and container node shapes.\n- Keep stable path and raw fallback metadata.\n\n5. Scope Out\n- No UI rendering.\n- No schema overlay.\n\n6. Implementation Checklist\n- Define the union types.\n- Include unsupported and truncation cases.\n- Avoid any escape hatches.\n\n7. Acceptance Criteria\n- The type model covers current primitive output plus containers and fallback nodes.\n- Future decoder work can use the model without broad casting.\n\n8. Verification Steps\n- Compile against the new type model.\n- Add focused type or unit tests for representative node shapes.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:2\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D17",
+      "title": "Add decodeScVal to the worker API",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "A ping smoke method does not move the product toward real decoding.",
+      "context": "The decoder worker is wired with Comlink but exposes no real decode entrypoint.",
+      "scopeIn": [
+        "Add one public decodeScVal method.",
+        "Return the normalized node contract."
+      ],
+      "scopeOut": [
+        "No complex decode coverage beyond supported cases.",
+        "No caching."
+      ],
+      "checklist": [
+        "Extend the worker API interface.",
+        "Expose the new method.",
+        "Return normalized output using the shared node model."
+      ],
+      "acceptance": [
+        "The worker exposes decodeScVal.",
+        "A smoke call returns normalized output for supported primitive inputs."
+      ],
+      "verification": [
+        "Add or update a worker test.",
+        "Call decodeScVal and assert on a simple primitive result."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd decodeScVal to the worker API\n\n2. Problem / Why\nA ping smoke method does not move the product toward real decoding.\n\n3. Current Product Context\nThe decoder worker is wired with Comlink but exposes no real decode entrypoint.\n\n4. Scope In\n- Add one public decodeScVal method.\n- Return the normalized node contract.\n\n5. Scope Out\n- No complex decode coverage beyond supported cases.\n- No caching.\n\n6. Implementation Checklist\n- Extend the worker API interface.\n- Expose the new method.\n- Return normalized output using the shared node model.\n\n7. Acceptance Criteria\n- The worker exposes decodeScVal.\n- A smoke call returns normalized output for supported primitive inputs.\n\n8. Verification Steps\n- Add or update a worker test.\n- Call decodeScVal and assert on a simple primitive result.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D18",
+      "title": "Add a main-thread helper for decodeScVal",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D17"
+      ],
+      "problem": "UI code should not need to know low-level Comlink details every time it needs a decode call.",
+      "context": "The worker factory exists, but there is no single helper wrapping the main-thread decode path.",
+      "scopeIn": [
+        "Expose one typed helper for decodeScVal.",
+        "Keep return types aligned with the normalized node contract."
+      ],
+      "scopeOut": [
+        "No multi-worker orchestration.",
+        "No caching."
+      ],
+      "checklist": [
+        "Call the worker method from one helper.",
+        "Return typed normalized results.",
+        "Handle simple call-site errors."
+      ],
+      "acceptance": [
+        "UI-side code can call one helper and receive a typed normalized result.",
+        "The helper compiles without leaking Comlink-specific types into consumers."
+      ],
+      "verification": [
+        "Add a focused test or smoke path.",
+        "Call the helper and assert on a primitive decode result."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a main-thread helper for decodeScVal\n\n2. Problem / Why\nUI code should not need to know low-level Comlink details every time it needs a decode call.\n\n3. Current Product Context\nThe worker factory exists, but there is no single helper wrapping the main-thread decode path.\n\n4. Scope In\n- Expose one typed helper for decodeScVal.\n- Keep return types aligned with the normalized node contract.\n\n5. Scope Out\n- No multi-worker orchestration.\n- No caching.\n\n6. Implementation Checklist\n- Call the worker method from one helper.\n- Return typed normalized results.\n- Handle simple call-site errors.\n\n7. Acceptance Criteria\n- UI-side code can call one helper and receive a typed normalized result.\n- The helper compiles without leaking Comlink-specific types into consumers.\n\n8. Verification Steps\n- Add a focused test or smoke path.\n- Call the helper and assert on a primitive decode result.\n\n9. Dependencies\n- SSL-D17\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D19",
+      "title": "Normalize i64 and u64 as decimal strings",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Native JavaScript numbers cannot safely represent all 64-bit integer values.",
+      "context": "Large numeric ScVal variants still fall back as unsupported today.",
+      "scopeIn": [
+        "Support i64 values.",
+        "Support u64 values."
+      ],
+      "scopeOut": [
+        "No pretty formatting.",
+        "No preference UI."
+      ],
+      "checklist": [
+        "Detect i64 and u64 values.",
+        "Convert them to exact decimal strings.",
+        "Keep original type metadata."
+      ],
+      "acceptance": [
+        "Boundary values decode without precision loss.",
+        "Results are represented as decimal strings, not JS numbers."
+      ],
+      "verification": [
+        "Add tests for minimum, maximum, zero, and representative values."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNormalize i64 and u64 as decimal strings\n\n2. Problem / Why\nNative JavaScript numbers cannot safely represent all 64-bit integer values.\n\n3. Current Product Context\nLarge numeric ScVal variants still fall back as unsupported today.\n\n4. Scope In\n- Support i64 values.\n- Support u64 values.\n\n5. Scope Out\n- No pretty formatting.\n- No preference UI.\n\n6. Implementation Checklist\n- Detect i64 and u64 values.\n- Convert them to exact decimal strings.\n- Keep original type metadata.\n\n7. Acceptance Criteria\n- Boundary values decode without precision loss.\n- Results are represented as decimal strings, not JS numbers.\n\n8. Verification Steps\n- Add tests for minimum, maximum, zero, and representative values.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D20",
+      "title": "Normalize i128 and u128 as decimal strings",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "128-bit Soroban integers are common for balances and must not lose precision.",
+      "context": "Large integer support is still missing beyond i32 and u32.",
+      "scopeIn": [
+        "Support i128 values.",
+        "Support u128 values."
+      ],
+      "scopeOut": [
+        "No pretty formatting.",
+        "No diff UI."
+      ],
+      "checklist": [
+        "Detect i128 and u128 values.",
+        "Convert them to exact decimal strings.",
+        "Keep original type metadata."
+      ],
+      "acceptance": [
+        "128-bit boundary and sample values decode into exact decimal strings.",
+        "Supported values stop falling back to unsupported results."
+      ],
+      "verification": [
+        "Add tests for minimum, maximum, zero, and non-trivial values."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNormalize i128 and u128 as decimal strings\n\n2. Problem / Why\n128-bit Soroban integers are common for balances and must not lose precision.\n\n3. Current Product Context\nLarge integer support is still missing beyond i32 and u32.\n\n4. Scope In\n- Support i128 values.\n- Support u128 values.\n\n5. Scope Out\n- No pretty formatting.\n- No diff UI.\n\n6. Implementation Checklist\n- Detect i128 and u128 values.\n- Convert them to exact decimal strings.\n- Keep original type metadata.\n\n7. Acceptance Criteria\n- 128-bit boundary and sample values decode into exact decimal strings.\n- Supported values stop falling back to unsupported results.\n\n8. Verification Steps\n- Add tests for minimum, maximum, zero, and non-trivial values.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D21",
+      "title": "Normalize i256 and u256 as decimal strings",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Soroban also uses 256-bit numeric variants, and fallback-only behavior is not enough.",
+      "context": "256-bit integer variants are still unsupported in the current normalization layer.",
+      "scopeIn": [
+        "Support i256 values.",
+        "Support u256 values."
+      ],
+      "scopeOut": [
+        "No pretty formatting.",
+        "No UI toggles."
+      ],
+      "checklist": [
+        "Detect i256 and u256 values.",
+        "Convert them to exact decimal strings.",
+        "Keep type metadata for later rendering and diffing."
+      ],
+      "acceptance": [
+        "Supported 256-bit values decode as exact strings.",
+        "These variants stop falling back to unsupported results."
+      ],
+      "verification": [
+        "Add tests for zero and representative large values."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNormalize i256 and u256 as decimal strings\n\n2. Problem / Why\nSoroban also uses 256-bit numeric variants, and fallback-only behavior is not enough.\n\n3. Current Product Context\n256-bit integer variants are still unsupported in the current normalization layer.\n\n4. Scope In\n- Support i256 values.\n- Support u256 values.\n\n5. Scope Out\n- No pretty formatting.\n- No UI toggles.\n\n6. Implementation Checklist\n- Detect i256 and u256 values.\n- Convert them to exact decimal strings.\n- Keep type metadata for later rendering and diffing.\n\n7. Acceptance Criteria\n- Supported 256-bit values decode as exact strings.\n- These variants stop falling back to unsupported results.\n\n8. Verification Steps\n- Add tests for zero and representative large values.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D22",
+      "title": "Add a bytes-to-hex helper",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Raw byte values are unreadable without a deterministic display format.",
+      "context": "Byte variants are still unsupported, and later inspector work will need a reusable helper.",
+      "scopeIn": [
+        "Convert byte input into stable hex output.",
+        "Handle empty and non-empty values."
+      ],
+      "scopeOut": [
+        "No base64 work.",
+        "No UI component."
+      ],
+      "checklist": [
+        "Accept the byte input shape used by the decoder.",
+        "Return a stable hex string.",
+        "Cover empty and non-empty byte arrays."
+      ],
+      "acceptance": [
+        "Byte input converts to deterministic hex output.",
+        "The helper covers empty, short, and longer values."
+      ],
+      "verification": [
+        "Add tests for empty bytes.",
+        "Add tests for short bytes.",
+        "Add tests for a longer payload."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a bytes-to-hex helper\n\n2. Problem / Why\nRaw byte values are unreadable without a deterministic display format.\n\n3. Current Product Context\nByte variants are still unsupported, and later inspector work will need a reusable helper.\n\n4. Scope In\n- Convert byte input into stable hex output.\n- Handle empty and non-empty values.\n\n5. Scope Out\n- No base64 work.\n- No UI component.\n\n6. Implementation Checklist\n- Accept the byte input shape used by the decoder.\n- Return a stable hex string.\n- Cover empty and non-empty byte arrays.\n\n7. Acceptance Criteria\n- Byte input converts to deterministic hex output.\n- The helper covers empty, short, and longer values.\n\n8. Verification Steps\n- Add tests for empty bytes.\n- Add tests for short bytes.\n- Add tests for a longer payload.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D23",
+      "title": "Add a bytes-to-base64 helper",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Base64 is a familiar byte representation for Stellar developers and should be available alongside hex.",
+      "context": "Byte variants still need reusable format helpers before inspector UI can expose them cleanly.",
+      "scopeIn": [
+        "Convert byte input into deterministic base64 text.",
+        "Handle empty and non-empty values."
+      ],
+      "scopeOut": [
+        "No hex work.",
+        "No UI toggle."
+      ],
+      "checklist": [
+        "Accept the byte input shape used by the decoder.",
+        "Return stable base64 text.",
+        "Cover empty and typical values."
+      ],
+      "acceptance": [
+        "Byte input converts to base64 consistently.",
+        "The helper covers empty and non-empty values."
+      ],
+      "verification": [
+        "Add tests for empty bytes.",
+        "Add tests for short bytes.",
+        "Add tests for a representative longer payload."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a bytes-to-base64 helper\n\n2. Problem / Why\nBase64 is a familiar byte representation for Stellar developers and should be available alongside hex.\n\n3. Current Product Context\nByte variants still need reusable format helpers before inspector UI can expose them cleanly.\n\n4. Scope In\n- Convert byte input into deterministic base64 text.\n- Handle empty and non-empty values.\n\n5. Scope Out\n- No hex work.\n- No UI toggle.\n\n6. Implementation Checklist\n- Accept the byte input shape used by the decoder.\n- Return stable base64 text.\n- Cover empty and typical values.\n\n7. Acceptance Criteria\n- Byte input converts to base64 consistently.\n- The helper covers empty and non-empty values.\n\n8. Verification Steps\n- Add tests for empty bytes.\n- Add tests for short bytes.\n- Add tests for a representative longer payload.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D24",
+      "title": "Add a UTF-8 preview helper for bytes",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D22",
+        "SSL-D23"
+      ],
+      "problem": "Many byte payloads contain readable text, but the app should only show text previews when decoding is safe.",
+      "context": "Hex and base64 helpers are landing, but a readable preview is still missing.",
+      "scopeIn": [
+        "Attempt UTF-8 decoding.",
+        "Return readable text only when decoding is safe."
+      ],
+      "scopeOut": [
+        "No byte-format preference UI.",
+        "No copy actions."
+      ],
+      "checklist": [
+        "Decode valid UTF-8.",
+        "Return a null-like result on invalid text.",
+        "Handle empty input cleanly."
+      ],
+      "acceptance": [
+        "Valid UTF-8 returns text.",
+        "Invalid byte sequences do not crash and do not masquerade as normal strings."
+      ],
+      "verification": [
+        "Add tests for valid text bytes.",
+        "Add tests for empty bytes.",
+        "Add tests for invalid UTF-8 sequences."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a UTF-8 preview helper for bytes\n\n2. Problem / Why\nMany byte payloads contain readable text, but the app should only show text previews when decoding is safe.\n\n3. Current Product Context\nHex and base64 helpers are landing, but a readable preview is still missing.\n\n4. Scope In\n- Attempt UTF-8 decoding.\n- Return readable text only when decoding is safe.\n\n5. Scope Out\n- No byte-format preference UI.\n- No copy actions.\n\n6. Implementation Checklist\n- Decode valid UTF-8.\n- Return a null-like result on invalid text.\n- Handle empty input cleanly.\n\n7. Acceptance Criteria\n- Valid UTF-8 returns text.\n- Invalid byte sequences do not crash and do not masquerade as normal strings.\n\n8. Verification Steps\n- Add tests for valid text bytes.\n- Add tests for empty bytes.\n- Add tests for invalid UTF-8 sequences.\n\n9. Dependencies\n- SSL-D22\n- SSL-D23\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D25",
+      "title": "Normalize vectors into ordered child nodes",
+      "phase": 2,
+      "area": "data",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "A state explorer cannot render nested contract data meaningfully until vectors become recursive tree nodes.",
+      "context": "Container types still fall back as unsupported.",
+      "scopeIn": [
+        "Normalize vector containers recursively.",
+        "Preserve order and child paths."
+      ],
+      "scopeOut": [
+        "No flattening.",
+        "No virtualized rendering."
+      ],
+      "checklist": [
+        "Detect ScVec values.",
+        "Normalize each child recursively.",
+        "Assign stable path segments using vector indices."
+      ],
+      "acceptance": [
+        "Vector values normalize into ordered child nodes.",
+        "Nested children preserve index-based paths."
+      ],
+      "verification": [
+        "Add tests for empty vectors.",
+        "Add tests for flat vectors.",
+        "Add tests for nested vectors with mixed child types."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNormalize vectors into ordered child nodes\n\n2. Problem / Why\nA state explorer cannot render nested contract data meaningfully until vectors become recursive tree nodes.\n\n3. Current Product Context\nContainer types still fall back as unsupported.\n\n4. Scope In\n- Normalize vector containers recursively.\n- Preserve order and child paths.\n\n5. Scope Out\n- No flattening.\n- No virtualized rendering.\n\n6. Implementation Checklist\n- Detect ScVec values.\n- Normalize each child recursively.\n- Assign stable path segments using vector indices.\n\n7. Acceptance Criteria\n- Vector values normalize into ordered child nodes.\n- Nested children preserve index-based paths.\n\n8. Verification Steps\n- Add tests for empty vectors.\n- Add tests for flat vectors.\n- Add tests for nested vectors with mixed child types.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D26",
+      "title": "Normalize maps into explicit key/value nodes",
+      "phase": 2,
+      "area": "data",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Soroban map keys are not guaranteed to be plain strings.",
+      "context": "Complex map values still fall back as unsupported today.",
+      "scopeIn": [
+        "Normalize map entries as explicit key and value nodes.",
+        "Preserve stable entry order."
+      ],
+      "scopeOut": [
+        "No explorer flattening.",
+        "No schema overlay."
+      ],
+      "checklist": [
+        "Detect ScMap values.",
+        "Normalize both key and value recursively.",
+        "Preserve stable order from the source map."
+      ],
+      "acceptance": [
+        "Map entries render as explicit key and value pairs.",
+        "Non-string keys are not lost through object coercion."
+      ],
+      "verification": [
+        "Add tests for scalar keys.",
+        "Add tests for nested keys.",
+        "Add tests for empty maps and mixed value types."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNormalize maps into explicit key/value nodes\n\n2. Problem / Why\nSoroban map keys are not guaranteed to be plain strings.\n\n3. Current Product Context\nComplex map values still fall back as unsupported today.\n\n4. Scope In\n- Normalize map entries as explicit key and value nodes.\n- Preserve stable entry order.\n\n5. Scope Out\n- No explorer flattening.\n- No schema overlay.\n\n6. Implementation Checklist\n- Detect ScMap values.\n- Normalize both key and value recursively.\n- Preserve stable order from the source map.\n\n7. Acceptance Criteria\n- Map entries render as explicit key and value pairs.\n- Non-string keys are not lost through object coercion.\n\n8. Verification Steps\n- Add tests for scalar keys.\n- Add tests for nested keys.\n- Add tests for empty maps and mixed value types.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D27",
+      "title": "Add a max-depth option to normalization",
+      "phase": 2,
+      "area": "perf",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D25",
+        "SSL-D26"
+      ],
+      "problem": "Deep or hostile nested values should not be able to force unbounded recursive work.",
+      "context": "Recursive container support is being added and now needs a simple depth budget.",
+      "scopeIn": [
+        "Add one normalization option for maximum recursion depth.",
+        "Thread it through recursive decode calls."
+      ],
+      "scopeOut": [
+        "No UI for changing the depth budget.",
+        "No lazy load-more interaction."
+      ],
+      "checklist": [
+        "Introduce an optional maxDepth setting.",
+        "Check it during recursive normalization.",
+        "Keep a sensible default."
+      ],
+      "acceptance": [
+        "Recursive normalization respects the configured depth limit.",
+        "Existing shallow values continue to decode normally."
+      ],
+      "verification": [
+        "Add tests with shallow and deep nested values.",
+        "Confirm behavior changes only when the depth limit is crossed."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:perf",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a max-depth option to normalization\n\n2. Problem / Why\nDeep or hostile nested values should not be able to force unbounded recursive work.\n\n3. Current Product Context\nRecursive container support is being added and now needs a simple depth budget.\n\n4. Scope In\n- Add one normalization option for maximum recursion depth.\n- Thread it through recursive decode calls.\n\n5. Scope Out\n- No UI for changing the depth budget.\n- No lazy load-more interaction.\n\n6. Implementation Checklist\n- Introduce an optional maxDepth setting.\n- Check it during recursive normalization.\n- Keep a sensible default.\n\n7. Acceptance Criteria\n- Recursive normalization respects the configured depth limit.\n- Existing shallow values continue to decode normally.\n\n8. Verification Steps\n- Add tests with shallow and deep nested values.\n- Confirm behavior changes only when the depth limit is crossed.\n\n9. Dependencies\n- SSL-D25\n- SSL-D26\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:perf\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D28",
+      "title": "Return truncation placeholder nodes past max depth",
+      "phase": 2,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D27"
+      ],
+      "problem": "A depth limit is only useful if the user can see that deeper content was intentionally truncated.",
+      "context": "Over-depth values still need a deterministic output shape.",
+      "scopeIn": [
+        "Add one truncation placeholder node.",
+        "Return it when max depth is exceeded."
+      ],
+      "scopeOut": [
+        "No lazy load-more UI.",
+        "No custom truncation controls."
+      ],
+      "checklist": [
+        "Create a truncation node shape in the normalized union.",
+        "Return it beyond the depth boundary.",
+        "Keep path metadata intact."
+      ],
+      "acceptance": [
+        "Over-depth values return a stable truncation node.",
+        "The decoder does not throw or silently drop deep content."
+      ],
+      "verification": [
+        "Add tests for the exact depth boundary.",
+        "Add tests for the first level beyond it."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:2",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nReturn truncation placeholder nodes past max depth\n\n2. Problem / Why\nA depth limit is only useful if the user can see that deeper content was intentionally truncated.\n\n3. Current Product Context\nOver-depth values still need a deterministic output shape.\n\n4. Scope In\n- Add one truncation placeholder node.\n- Return it when max depth is exceeded.\n\n5. Scope Out\n- No lazy load-more UI.\n- No custom truncation controls.\n\n6. Implementation Checklist\n- Create a truncation node shape in the normalized union.\n- Return it beyond the depth boundary.\n- Keep path metadata intact.\n\n7. Acceptance Criteria\n- Over-depth values return a stable truncation node.\n- The decoder does not throw or silently drop deep content.\n\n8. Verification Steps\n- Add tests for the exact depth boundary.\n- Add tests for the first level beyond it.\n\n9. Dependencies\n- SSL-D27\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:2\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D29",
+      "title": "Normalize account and contract addresses to StrKey text",
+      "phase": 2,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Raw Soroban address payloads are not usable to humans in a debugger.",
+      "context": "Address values still fall back as unsupported even though readable account and contract strings are core product output.",
+      "scopeIn": [
+        "Support account addresses.",
+        "Support contract addresses."
+      ],
+      "scopeOut": [
+        "No copy-address UI.",
+        "No \"You\" label enrichment."
+      ],
+      "checklist": [
+        "Detect address variants.",
+        "Convert them to the correct text format.",
+        "Keep original address type metadata."
+      ],
+      "acceptance": [
+        "Supported address variants normalize to readable text.",
+        "Unsupported variants fail safely without crashing the worker."
+      ],
+      "verification": [
+        "Add tests for account address fixtures.",
+        "Add tests for contract address fixtures."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:2",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nNormalize account and contract addresses to StrKey text\n\n2. Problem / Why\nRaw Soroban address payloads are not usable to humans in a debugger.\n\n3. Current Product Context\nAddress values still fall back as unsupported even though readable account and contract strings are core product output.\n\n4. Scope In\n- Support account addresses.\n- Support contract addresses.\n\n5. Scope Out\n- No copy-address UI.\n- No \"You\" label enrichment.\n\n6. Implementation Checklist\n- Detect address variants.\n- Convert them to the correct text format.\n- Keep original address type metadata.\n\n7. Acceptance Criteria\n- Supported address variants normalize to readable text.\n- Unsupported variants fail safely without crashing the worker.\n\n8. Verification Steps\n- Add tests for account address fixtures.\n- Add tests for contract address fixtures.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:2\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D30",
+      "title": "Add a getLedgerEntries JSON-RPC helper with cancellation",
+      "phase": 3,
+      "area": "network",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [],
+      "problem": "Contract loading needs a focused RPC helper that can be aborted when the user changes routes or submits a new contract quickly.",
+      "context": "The app has no real network adapter yet for contract state reads.",
+      "scopeIn": [
+        "Send getLedgerEntries requests.",
+        "Honor an AbortSignal."
+      ],
+      "scopeOut": [
+        "No polling loop.",
+        "No decode logic."
+      ],
+      "checklist": [
+        "Build the JSON-RPC request payload.",
+        "Parse the response minimally.",
+        "Stop work cleanly when the request is aborted."
+      ],
+      "acceptance": [
+        "Successful calls return parsed data.",
+        "Aborted calls do not commit stale results or throw unhandled errors into the UI."
+      ],
+      "verification": [
+        "Add tests for a success case.",
+        "Add tests for an abort case.",
+        "Add tests for a failure case."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:network",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a getLedgerEntries JSON-RPC helper with cancellation\n\n2. Problem / Why\nContract loading needs a focused RPC helper that can be aborted when the user changes routes or submits a new contract quickly.\n\n3. Current Product Context\nThe app has no real network adapter yet for contract state reads.\n\n4. Scope In\n- Send getLedgerEntries requests.\n- Honor an AbortSignal.\n\n5. Scope Out\n- No polling loop.\n- No decode logic.\n\n6. Implementation Checklist\n- Build the JSON-RPC request payload.\n- Parse the response minimally.\n- Stop work cleanly when the request is aborted.\n\n7. Acceptance Criteria\n- Successful calls return parsed data.\n- Aborted calls do not commit stale results or throw unhandled errors into the UI.\n\n8. Verification Steps\n- Add tests for a success case.\n- Add tests for an abort case.\n- Add tests for a failure case.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:network\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D31",
+      "title": "Add active contract state to the global store",
+      "phase": 3,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "Contract-aware routes and actions need one canonical active contract value.",
+      "context": "Network, ledger data, and expanded nodes already exist in state, but active contract context does not.",
+      "scopeIn": [
+        "Add activeContractId.",
+        "Add set and clear actions."
+      ],
+      "scopeOut": [
+        "No fetch logic.",
+        "No recent-contract history."
+      ],
+      "checklist": [
+        "Add the field to the store.",
+        "Add set and clear actions.",
+        "Keep unrelated slices unchanged."
+      ],
+      "acceptance": [
+        "The store can set, clear, and read the active contract ID.",
+        "The new field does not affect existing slices."
+      ],
+      "verification": [
+        "Add store tests for initial state.",
+        "Add tests for set and clear actions."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd active contract state to the global store\n\n2. Problem / Why\nContract-aware routes and actions need one canonical active contract value.\n\n3. Current Product Context\nNetwork, ledger data, and expanded nodes already exist in state, but active contract context does not.\n\n4. Scope In\n- Add activeContractId.\n- Add set and clear actions.\n\n5. Scope Out\n- No fetch logic.\n- No recent-contract history.\n\n6. Implementation Checklist\n- Add the field to the store.\n- Add set and clear actions.\n- Keep unrelated slices unchanged.\n\n7. Acceptance Criteria\n- The store can set, clear, and read the active contract ID.\n- The new field does not affect existing slices.\n\n8. Verification Steps\n- Add store tests for initial state.\n- Add tests for set and clear actions.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D32",
+      "title": "Add contract load status state",
+      "phase": 3,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D31"
+      ],
+      "problem": "The UI needs an explicit fetch and decode lifecycle to render loading, empty, success, and error states.",
+      "context": "Explorer UI shells exist, but there is no contract-specific status field driving them.",
+      "scopeIn": [
+        "Add load status lifecycle state.",
+        "Expose set and reset actions."
+      ],
+      "scopeOut": [
+        "No retry helper.",
+        "No route-level error boundary."
+      ],
+      "checklist": [
+        "Add the status enum.",
+        "Include idle, loading, success, empty, and error states.",
+        "Test the transitions."
+      ],
+      "acceptance": [
+        "Contract load status can move through the expected lifecycle.",
+        "Status transitions do not mutate active contract or stored ledger entries."
+      ],
+      "verification": [
+        "Add store tests for default state.",
+        "Add store tests for each explicit status transition."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd contract load status state\n\n2. Problem / Why\nThe UI needs an explicit fetch and decode lifecycle to render loading, empty, success, and error states.\n\n3. Current Product Context\nExplorer UI shells exist, but there is no contract-specific status field driving them.\n\n4. Scope In\n- Add load status lifecycle state.\n- Expose set and reset actions.\n\n5. Scope Out\n- No retry helper.\n- No route-level error boundary.\n\n6. Implementation Checklist\n- Add the status enum.\n- Include idle, loading, success, empty, and error states.\n- Test the transitions.\n\n7. Acceptance Criteria\n- Contract load status can move through the expected lifecycle.\n- Status transitions do not mutate active contract or stored ledger entries.\n\n8. Verification Steps\n- Add store tests for default state.\n- Add store tests for each explicit status transition.\n\n9. Dependencies\n- SSL-D31\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D33",
+      "title": "Map raw ledger responses into stored entry records",
+      "phase": 3,
+      "area": "data",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16"
+      ],
+      "problem": "Raw RPC payloads are too inconsistent to render directly across explorer, inspector, history, and watchlist flows.",
+      "context": "The store already has a ledger entry shape, but there is no mapper from fetched RPC data into that shape.",
+      "scopeIn": [
+        "Convert raw response data into the ledger entry record format.",
+        "Preserve raw XDR when present."
+      ],
+      "scopeOut": [
+        "No worker decode call.",
+        "No schema overlay."
+      ],
+      "checklist": [
+        "Extract the stable fields needed by the store.",
+        "Preserve raw XDR when present.",
+        "Return a consistent record when optional metadata is missing."
+      ],
+      "acceptance": [
+        "Representative raw ledger responses map into stable stored records.",
+        "Mapped records include contract context and raw payload where available."
+      ],
+      "verification": [
+        "Add tests for typical contract data responses.",
+        "Add tests for missing optional fields.",
+        "Add tests for multiple-entry input."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:data",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nMap raw ledger responses into stored entry records\n\n2. Problem / Why\nRaw RPC payloads are too inconsistent to render directly across explorer, inspector, history, and watchlist flows.\n\n3. Current Product Context\nThe store already has a ledger entry shape, but there is no mapper from fetched RPC data into that shape.\n\n4. Scope In\n- Convert raw response data into the ledger entry record format.\n- Preserve raw XDR when present.\n\n5. Scope Out\n- No worker decode call.\n- No schema overlay.\n\n6. Implementation Checklist\n- Extract the stable fields needed by the store.\n- Preserve raw XDR when present.\n- Return a consistent record when optional metadata is missing.\n\n7. Acceptance Criteria\n- Representative raw ledger responses map into stable stored records.\n- Mapped records include contract context and raw payload where available.\n\n8. Verification Steps\n- Add tests for typical contract data responses.\n- Add tests for missing optional fields.\n- Add tests for multiple-entry input.\n\n9. Dependencies\n- SSL-D16\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:data\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D34",
+      "title": "Add a contract load action that fetches, decodes, and aborts stale requests",
+      "phase": 3,
+      "area": "state",
+      "size": "m",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D18",
+        "SSL-D30",
+        "SSL-D31",
+        "SSL-D32",
+        "SSL-D33"
+      ],
+      "problem": "The product needs one real pipeline from contract submit to store population.",
+      "context": "Route navigation, worker decode access, and raw RPC helpers are landing separately, but there is not yet a single action tying them together.",
+      "scopeIn": [
+        "Take a contract ID and mark loading state.",
+        "Fetch entries, decode them, and commit only the latest non-aborted result."
+      ],
+      "scopeOut": [
+        "No polling refresh.",
+        "No schema overlay or history snapshots."
+      ],
+      "checklist": [
+        "Set active contract and loading state.",
+        "Call the ledger helper.",
+        "Decode returned values through the worker helper and ignore stale requests."
+      ],
+      "acceptance": [
+        "A valid contract load updates store state end to end.",
+        "Stale in-flight requests do not overwrite newer results."
+      ],
+      "verification": [
+        "Add mocked integration coverage for success, empty, failure, and abort races."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:state",
+        "size:m",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a contract load action that fetches, decodes, and aborts stale requests\n\n2. Problem / Why\nThe product needs one real pipeline from contract submit to store population.\n\n3. Current Product Context\nRoute navigation, worker decode access, and raw RPC helpers are landing separately, but there is not yet a single action tying them together.\n\n4. Scope In\n- Take a contract ID and mark loading state.\n- Fetch entries, decode them, and commit only the latest non-aborted result.\n\n5. Scope Out\n- No polling refresh.\n- No schema overlay or history snapshots.\n\n6. Implementation Checklist\n- Set active contract and loading state.\n- Call the ledger helper.\n- Decode returned values through the worker helper and ignore stale requests.\n\n7. Acceptance Criteria\n- A valid contract load updates store state end to end.\n- Stale in-flight requests do not overwrite newer results.\n\n8. Verification Steps\n- Add mocked integration coverage for success, empty, failure, and abort races.\n\n9. Dependencies\n- SSL-D18\n- SSL-D30\n- SSL-D31\n- SSL-D32\n- SSL-D33\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:state\n- size:m\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D35",
+      "title": "Add explorer loading skeleton rows",
+      "phase": 3,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D34"
+      ],
+      "problem": "Contract loads should show progress instead of a blank or stale explorer panel.",
+      "context": "Explorer shell exists, but there is no dedicated loading presentation yet.",
+      "scopeIn": [
+        "Render a simple loading skeleton pattern.",
+        "Show it only during contract loading."
+      ],
+      "scopeOut": [
+        "No shimmer redesign.",
+        "No perf instrumentation."
+      ],
+      "checklist": [
+        "Read the load status.",
+        "Render a fixed number of skeleton rows.",
+        "Keep the placeholder inside the existing explorer pane."
+      ],
+      "acceptance": [
+        "Loading a contract shows skeleton rows immediately.",
+        "Skeleton rows disappear once success, empty, or error state replaces them."
+      ],
+      "verification": [
+        "Trigger a loading state manually or through a mocked fetch delay.",
+        "Confirm the explorer pane shows skeleton rows only during loading."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd explorer loading skeleton rows\n\n2. Problem / Why\nContract loads should show progress instead of a blank or stale explorer panel.\n\n3. Current Product Context\nExplorer shell exists, but there is no dedicated loading presentation yet.\n\n4. Scope In\n- Render a simple loading skeleton pattern.\n- Show it only during contract loading.\n\n5. Scope Out\n- No shimmer redesign.\n- No perf instrumentation.\n\n6. Implementation Checklist\n- Read the load status.\n- Render a fixed number of skeleton rows.\n- Keep the placeholder inside the existing explorer pane.\n\n7. Acceptance Criteria\n- Loading a contract shows skeleton rows immediately.\n- Skeleton rows disappear once success, empty, or error state replaces them.\n\n8. Verification Steps\n- Trigger a loading state manually or through a mocked fetch delay.\n- Confirm the explorer pane shows skeleton rows only during loading.\n\n9. Dependencies\n- SSL-D34\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D36",
+      "title": "Add an explorer empty state card",
+      "phase": 3,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D34"
+      ],
+      "problem": "Contracts that return no visible entries should render a useful empty state instead of a blank pane.",
+      "context": "The explorer does not distinguish between not loaded and loaded but empty.",
+      "scopeIn": [
+        "Render one empty state card for the empty status.",
+        "Keep it distinct from error and loading states."
+      ],
+      "scopeOut": [
+        "No discovery CTA.",
+        "No watchlist integration."
+      ],
+      "checklist": [
+        "Render a short explanation.",
+        "Mention that no contract data was found for the current query.",
+        "Keep the state distinct from errors."
+      ],
+      "acceptance": [
+        "A completed empty load shows a clear empty-state card.",
+        "The explorer does not reuse loading or error UI for empty results."
+      ],
+      "verification": [
+        "Mock an empty contract load.",
+        "Confirm the explorer shows the empty state instead of blank space."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd an explorer empty state card\n\n2. Problem / Why\nContracts that return no visible entries should render a useful empty state instead of a blank pane.\n\n3. Current Product Context\nThe explorer does not distinguish between not loaded and loaded but empty.\n\n4. Scope In\n- Render one empty state card for the empty status.\n- Keep it distinct from error and loading states.\n\n5. Scope Out\n- No discovery CTA.\n- No watchlist integration.\n\n6. Implementation Checklist\n- Render a short explanation.\n- Mention that no contract data was found for the current query.\n- Keep the state distinct from errors.\n\n7. Acceptance Criteria\n- A completed empty load shows a clear empty-state card.\n- The explorer does not reuse loading or error UI for empty results.\n\n8. Verification Steps\n- Mock an empty contract load.\n- Confirm the explorer shows the empty state instead of blank space.\n\n9. Dependencies\n- SSL-D34\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D37",
+      "title": "Add an explorer error state card with retry",
+      "phase": 3,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D34"
+      ],
+      "problem": "Failed contract loads should render a focused error state and one immediate next step.",
+      "context": "Failures currently have no dedicated explorer UI.",
+      "scopeIn": [
+        "Add an explorer error card.",
+        "Add a retry action that re-runs the current contract load."
+      ],
+      "scopeOut": [
+        "No bounded backoff helper.",
+        "No global error boundary."
+      ],
+      "checklist": [
+        "Render the error state only on load failure.",
+        "Add a retry button.",
+        "Wire retry to the existing contract load action."
+      ],
+      "acceptance": [
+        "A failed load renders a clear error state.",
+        "Pressing Retry re-attempts the current contract load."
+      ],
+      "verification": [
+        "Mock a load failure.",
+        "Confirm the error card appears and Retry runs the load action again."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd an explorer error state card with retry\n\n2. Problem / Why\nFailed contract loads should render a focused error state and one immediate next step.\n\n3. Current Product Context\nFailures currently have no dedicated explorer UI.\n\n4. Scope In\n- Add an explorer error card.\n- Add a retry action that re-runs the current contract load.\n\n5. Scope Out\n- No bounded backoff helper.\n- No global error boundary.\n\n6. Implementation Checklist\n- Render the error state only on load failure.\n- Add a retry button.\n- Wire retry to the existing contract load action.\n\n7. Acceptance Criteria\n- A failed load renders a clear error state.\n- Pressing Retry re-attempts the current contract load.\n\n8. Verification Steps\n- Mock a load failure.\n- Confirm the error card appears and Retry runs the load action again.\n\n9. Dependencies\n- SSL-D34\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D38",
+      "title": "Define a flat tree row model",
+      "phase": 3,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D16",
+        "SSL-D31"
+      ],
+      "problem": "Virtualized rendering needs one flat visible-row contract separate from the nested normalized tree.",
+      "context": "There is not yet a row model for the explorer viewport.",
+      "scopeIn": [
+        "Define one row shape for visible explorer items.",
+        "Include depth, key path, and child metadata."
+      ],
+      "scopeOut": [
+        "No row rendering logic.",
+        "No virtualization component."
+      ],
+      "checklist": [
+        "Model the minimum fields a visible row needs.",
+        "Keep it compatible with both primitive and container nodes.",
+        "Avoid styling concerns in the type."
+      ],
+      "acceptance": [
+        "The row type can represent primitives, containers, unsupported values, and truncation placeholders.",
+        "The model is stable enough for flattening and row rendering."
+      ],
+      "verification": [
+        "Add focused type or unit tests for representative rows."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nDefine a flat tree row model\n\n2. Problem / Why\nVirtualized rendering needs one flat visible-row contract separate from the nested normalized tree.\n\n3. Current Product Context\nThere is not yet a row model for the explorer viewport.\n\n4. Scope In\n- Define one row shape for visible explorer items.\n- Include depth, key path, and child metadata.\n\n5. Scope Out\n- No row rendering logic.\n- No virtualization component.\n\n6. Implementation Checklist\n- Model the minimum fields a visible row needs.\n- Keep it compatible with both primitive and container nodes.\n- Avoid styling concerns in the type.\n\n7. Acceptance Criteria\n- The row type can represent primitives, containers, unsupported values, and truncation placeholders.\n- The model is stable enough for flattening and row rendering.\n\n8. Verification Steps\n- Add focused type or unit tests for representative rows.\n\n9. Dependencies\n- SSL-D16\n- SSL-D31\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D39",
+      "title": "Implement flattenTree from expanded node state",
+      "phase": 3,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D25",
+        "SSL-D26",
+        "SSL-D38"
+      ],
+      "problem": "A tree explorer cannot be virtualized efficiently until nested nodes can project into a flat visible row list.",
+      "context": "Normalized containers and expanded-node state exist separately, but there is no projection function joining them.",
+      "scopeIn": [
+        "Walk normalized nodes in visible order.",
+        "Hide collapsed descendants and keep stable row identity."
+      ],
+      "scopeOut": [
+        "No UI renderer.",
+        "No search or filter behavior."
+      ],
+      "checklist": [
+        "Visit visible nodes in order.",
+        "Include depth and path data.",
+        "Hide collapsed descendants while preserving row identity."
+      ],
+      "acceptance": [
+        "Expanded nodes expose descendants.",
+        "Collapsed nodes hide them while row order remains deterministic."
+      ],
+      "verification": [
+        "Add helper tests with nested maps and vectors.",
+        "Cover different expanded-node combinations."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nImplement flattenTree from expanded node state\n\n2. Problem / Why\nA tree explorer cannot be virtualized efficiently until nested nodes can project into a flat visible row list.\n\n3. Current Product Context\nNormalized containers and expanded-node state exist separately, but there is no projection function joining them.\n\n4. Scope In\n- Walk normalized nodes in visible order.\n- Hide collapsed descendants and keep stable row identity.\n\n5. Scope Out\n- No UI renderer.\n- No search or filter behavior.\n\n6. Implementation Checklist\n- Visit visible nodes in order.\n- Include depth and path data.\n- Hide collapsed descendants while preserving row identity.\n\n7. Acceptance Criteria\n- Expanded nodes expose descendants.\n- Collapsed nodes hide them while row order remains deterministic.\n\n8. Verification Steps\n- Add helper tests with nested maps and vectors.\n- Cover different expanded-node combinations.\n\n9. Dependencies\n- SSL-D25\n- SSL-D26\n- SSL-D38\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D40",
+      "title": "Add flattenTree expand/collapse tests",
+      "phase": 3,
+      "area": "qa",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D39"
+      ],
+      "problem": "Tree projection logic is easy to regress once selection, virtualization, and filters are added.",
+      "context": "FlattenTree is a core helper and needs dedicated coverage.",
+      "scopeIn": [
+        "Test collapsed root behavior.",
+        "Test nested expansion and deterministic ordering."
+      ],
+      "scopeOut": [
+        "No renderer snapshots.",
+        "No network mocks."
+      ],
+      "checklist": [
+        "Cover collapsed root and expanded root.",
+        "Cover nested expansion.",
+        "Cover mixed map and vector trees and deterministic row order."
+      ],
+      "acceptance": [
+        "The test suite catches incorrect row counts.",
+        "The test suite catches wrong row order and descendant leakage."
+      ],
+      "verification": [
+        "Run the new flattenTree tests.",
+        "Break one expansion rule locally and confirm the suite fails meaningfully."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:qa",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd flattenTree expand/collapse tests\n\n2. Problem / Why\nTree projection logic is easy to regress once selection, virtualization, and filters are added.\n\n3. Current Product Context\nFlattenTree is a core helper and needs dedicated coverage.\n\n4. Scope In\n- Test collapsed root behavior.\n- Test nested expansion and deterministic ordering.\n\n5. Scope Out\n- No renderer snapshots.\n- No network mocks.\n\n6. Implementation Checklist\n- Cover collapsed root and expanded root.\n- Cover nested expansion.\n- Cover mixed map and vector trees and deterministic row order.\n\n7. Acceptance Criteria\n- The test suite catches incorrect row counts.\n- The test suite catches wrong row order and descendant leakage.\n\n8. Verification Steps\n- Run the new flattenTree tests.\n- Break one expansion rule locally and confirm the suite fails meaningfully.\n\n9. Dependencies\n- SSL-D39\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:qa\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D41",
+      "title": "Add a virtualized tree list skeleton",
+      "phase": 3,
+      "area": "perf",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D39"
+      ],
+      "problem": "Large contract state payloads will overwhelm the DOM if the explorer renders every row at once.",
+      "context": "The explorer still needs a viewport renderer designed for large lists.",
+      "scopeIn": [
+        "Add one virtualized list shell.",
+        "Render only the visible window of rows."
+      ],
+      "scopeOut": [
+        "No search or filter behavior.",
+        "No synchronized diff scrolling."
+      ],
+      "checklist": [
+        "Choose the planned virtualization pattern or library.",
+        "Render a minimal row window.",
+        "Keep the API driven by flat rows."
+      ],
+      "acceptance": [
+        "The list renders a subset of rows based on viewport position.",
+        "The explorer no longer requires every row to mount at once."
+      ],
+      "verification": [
+        "Mock a large row array.",
+        "Confirm only a visible slice mounts in the DOM."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:perf",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a virtualized tree list skeleton\n\n2. Problem / Why\nLarge contract state payloads will overwhelm the DOM if the explorer renders every row at once.\n\n3. Current Product Context\nThe explorer still needs a viewport renderer designed for large lists.\n\n4. Scope In\n- Add one virtualized list shell.\n- Render only the visible window of rows.\n\n5. Scope Out\n- No search or filter behavior.\n- No synchronized diff scrolling.\n\n6. Implementation Checklist\n- Choose the planned virtualization pattern or library.\n- Render a minimal row window.\n- Keep the API driven by flat rows.\n\n7. Acceptance Criteria\n- The list renders a subset of rows based on viewport position.\n- The explorer no longer requires every row to mount at once.\n\n8. Verification Steps\n- Mock a large row array.\n- Confirm only a visible slice mounts in the DOM.\n\n9. Dependencies\n- SSL-D39\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:perf\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D42",
+      "title": "Connect the virtualized list to flattened rows",
+      "phase": 3,
+      "area": "perf",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D41"
+      ],
+      "problem": "A virtualized shell is not useful until it consumes real explorer row data.",
+      "context": "FlattenTree and the virtualized shell are landing separately.",
+      "scopeIn": [
+        "Feed flattened rows into the virtualized list.",
+        "Update the list when expansion changes."
+      ],
+      "scopeOut": [
+        "No search or filter behavior.",
+        "No diff highlighting."
+      ],
+      "checklist": [
+        "Read normalized tree data and expanded-node state.",
+        "Derive flat rows.",
+        "Pass them into the virtualized list."
+      ],
+      "acceptance": [
+        "Expanding or collapsing nodes changes the row count in the virtualized explorer.",
+        "Scroll rendering remains stable as rows change."
+      ],
+      "verification": [
+        "Load mock tree data.",
+        "Expand and collapse nodes.",
+        "Confirm the rendered window updates correctly."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:perf",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nConnect the virtualized list to flattened rows\n\n2. Problem / Why\nA virtualized shell is not useful until it consumes real explorer row data.\n\n3. Current Product Context\nFlattenTree and the virtualized shell are landing separately.\n\n4. Scope In\n- Feed flattened rows into the virtualized list.\n- Update the list when expansion changes.\n\n5. Scope Out\n- No search or filter behavior.\n- No diff highlighting.\n\n6. Implementation Checklist\n- Read normalized tree data and expanded-node state.\n- Derive flat rows.\n- Pass them into the virtualized list.\n\n7. Acceptance Criteria\n- Expanding or collapsing nodes changes the row count in the virtualized explorer.\n- Scroll rendering remains stable as rows change.\n\n8. Verification Steps\n- Load mock tree data.\n- Expand and collapse nodes.\n- Confirm the rendered window updates correctly.\n\n9. Dependencies\n- SSL-D41\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:perf\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D43",
+      "title": "Add a tree row renderer with indentation and expander",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D42"
+      ],
+      "problem": "Virtualized rows still need a readable tree presentation with clear parent and child affordances.",
+      "context": "The explorer can reach a flat row list, but it still needs one reusable row renderer.",
+      "scopeIn": [
+        "Render depth indentation.",
+        "Render an expander only for rows with children."
+      ],
+      "scopeOut": [
+        "No schema labels.",
+        "No diff badges."
+      ],
+      "checklist": [
+        "Indent by depth.",
+        "Render the expander only when children exist.",
+        "Keep the row interaction surface consistent."
+      ],
+      "acceptance": [
+        "Rows visually reflect depth.",
+        "Expandable rows show a control while leaf rows do not waste expander space."
+      ],
+      "verification": [
+        "Render rows with different depths and child counts.",
+        "Confirm indentation and expander behavior are correct."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a tree row renderer with indentation and expander\n\n2. Problem / Why\nVirtualized rows still need a readable tree presentation with clear parent and child affordances.\n\n3. Current Product Context\nThe explorer can reach a flat row list, but it still needs one reusable row renderer.\n\n4. Scope In\n- Render depth indentation.\n- Render an expander only for rows with children.\n\n5. Scope Out\n- No schema labels.\n- No diff badges.\n\n6. Implementation Checklist\n- Indent by depth.\n- Render the expander only when children exist.\n- Keep the row interaction surface consistent.\n\n7. Acceptance Criteria\n- Rows visually reflect depth.\n- Expandable rows show a control while leaf rows do not waste expander space.\n\n8. Verification Steps\n- Render rows with different depths and child counts.\n- Confirm indentation and expander behavior are correct.\n\n9. Dependencies\n- SSL-D42\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:3\n- area:ui\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D44",
+      "title": "Add tree row value preview and type badge formatting",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D43"
+      ],
+      "problem": "A tree of keys alone is not enough; each row needs a short preview of its value and type.",
+      "context": "The row renderer is landing, but row content is still too sparse to help debugging.",
+      "scopeIn": [
+        "Add short value preview formatting.",
+        "Add type badge rendering for each row."
+      ],
+      "scopeOut": [
+        "No schema-aware labels.",
+        "No diff status."
+      ],
+      "checklist": [
+        "Render primitive previews compactly.",
+        "Show container and type badges consistently.",
+        "Fall back safely for unsupported and truncated nodes."
+      ],
+      "acceptance": [
+        "Rows show readable preview text for primitives.",
+        "Rows show clear type badges for all row kinds."
+      ],
+      "verification": [
+        "Render example rows for strings, numbers, maps, vectors, unsupported nodes, and truncation placeholders."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd tree row value preview and type badge formatting\n\n2. Problem / Why\nA tree of keys alone is not enough; each row needs a short preview of its value and type.\n\n3. Current Product Context\nThe row renderer is landing, but row content is still too sparse to help debugging.\n\n4. Scope In\n- Add short value preview formatting.\n- Add type badge rendering for each row.\n\n5. Scope Out\n- No schema-aware labels.\n- No diff status.\n\n6. Implementation Checklist\n- Render primitive previews compactly.\n- Show container and type badges consistently.\n- Fall back safely for unsupported and truncated nodes.\n\n7. Acceptance Criteria\n- Rows show readable preview text for primitives.\n- Rows show clear type badges for all row kinds.\n\n8. Verification Steps\n- Render example rows for strings, numbers, maps, vectors, unsupported nodes, and truncation placeholders.\n\n9. Dependencies\n- SSL-D43\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D45",
+      "title": "Add selected key-path state and a select action",
+      "phase": 3,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D31"
+      ],
+      "problem": "Explorer and inspector behavior need one stable notion of which key path is currently selected.",
+      "context": "There is no dedicated selection state for a focused row today.",
+      "scopeIn": [
+        "Add one selected key-path field.",
+        "Add set and clear actions."
+      ],
+      "scopeOut": [
+        "No navigation.",
+        "No watchlist behavior."
+      ],
+      "checklist": [
+        "Add the field.",
+        "Add set and clear actions.",
+        "Keep selection independent from expansion state."
+      ],
+      "acceptance": [
+        "The store can track one selected key path.",
+        "Selection does not mutate ledger data or expansion state."
+      ],
+      "verification": [
+        "Add store tests for selecting, replacing, and clearing the current key path."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd selected key-path state and a select action\n\n2. Problem / Why\nExplorer and inspector behavior need one stable notion of which key path is currently selected.\n\n3. Current Product Context\nThere is no dedicated selection state for a focused row today.\n\n4. Scope In\n- Add one selected key-path field.\n- Add set and clear actions.\n\n5. Scope Out\n- No navigation.\n- No watchlist behavior.\n\n6. Implementation Checklist\n- Add the field.\n- Add set and clear actions.\n- Keep selection independent from expansion state.\n\n7. Acceptance Criteria\n- The store can track one selected key path.\n- Selection does not mutate ledger data or expansion state.\n\n8. Verification Steps\n- Add store tests for selecting, replacing, and clearing the current key path.\n\n9. Dependencies\n- SSL-D31\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D46",
+      "title": "Scaffold the inspect route for a contract key",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D14"
+      ],
+      "problem": "Explorer row activation needs a real destination for key-level inspection.",
+      "context": "There is still no dedicated route for a single contract key path.",
+      "scopeIn": [
+        "Add /contracts/:contractId/inspect/:keyPath.",
+        "Render minimal context content."
+      ],
+      "scopeOut": [
+        "No schema overlay.",
+        "No diff compare mode."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Read both route params.",
+        "Render a stable inspect shell."
+      ],
+      "acceptance": [
+        "Visiting the inspect route renders a contract-aware page.",
+        "The route survives direct refresh."
+      ],
+      "verification": [
+        "Open the inspect route directly in the browser.",
+        "Refresh it and confirm the page still resolves."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the inspect route for a contract key\n\n2. Problem / Why\nExplorer row activation needs a real destination for key-level inspection.\n\n3. Current Product Context\nThere is still no dedicated route for a single contract key path.\n\n4. Scope In\n- Add /contracts/:contractId/inspect/:keyPath.\n- Render minimal context content.\n\n5. Scope Out\n- No schema overlay.\n- No diff compare mode.\n\n6. Implementation Checklist\n- Create the route.\n- Read both route params.\n- Render a stable inspect shell.\n\n7. Acceptance Criteria\n- Visiting the inspect route renders a contract-aware page.\n- The route survives direct refresh.\n\n8. Verification Steps\n- Open the inspect route directly in the browser.\n- Refresh it and confirm the page still resolves.\n\n9. Dependencies\n- SSL-D14\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D47",
+      "title": "Navigate to inspect when a tree row is activated",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D43",
+        "SSL-D45",
+        "SSL-D46"
+      ],
+      "problem": "Explorer rows need to open the key inspector with one deterministic interaction.",
+      "context": "Row rendering, selected key-path state, and the inspect route are landing separately.",
+      "scopeIn": [
+        "Select the row key path on activation.",
+        "Route to the inspect page for that path."
+      ],
+      "scopeOut": [
+        "No keyboard arrow navigation.",
+        "No watchlist pinning."
+      ],
+      "checklist": [
+        "Wire row activation to the selection action.",
+        "Build the inspect route params.",
+        "Preserve current contract context."
+      ],
+      "acceptance": [
+        "Activating a row updates selection.",
+        "Activating a row routes to the matching inspect page."
+      ],
+      "verification": [
+        "Click a row in the explorer.",
+        "Confirm both selected state and browser route update."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nNavigate to inspect when a tree row is activated\n\n2. Problem / Why\nExplorer rows need to open the key inspector with one deterministic interaction.\n\n3. Current Product Context\nRow rendering, selected key-path state, and the inspect route are landing separately.\n\n4. Scope In\n- Select the row key path on activation.\n- Route to the inspect page for that path.\n\n5. Scope Out\n- No keyboard arrow navigation.\n- No watchlist pinning.\n\n6. Implementation Checklist\n- Wire row activation to the selection action.\n- Build the inspect route params.\n- Preserve current contract context.\n\n7. Acceptance Criteria\n- Activating a row updates selection.\n- Activating a row routes to the matching inspect page.\n\n8. Verification Steps\n- Click a row in the explorer.\n- Confirm both selected state and browser route update.\n\n9. Dependencies\n- SSL-D43\n- SSL-D45\n- SSL-D46\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D48",
+      "title": "Build inspector breadcrumb text from contract and key path",
+      "phase": 3,
+      "area": "ui",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D46"
+      ],
+      "problem": "Inspect pages need obvious context and a quick way to understand where the current node lives.",
+      "context": "The inspect route still lacks breadcrumb context.",
+      "scopeIn": [
+        "Build breadcrumb text from route params.",
+        "Render it in the inspect header."
+      ],
+      "scopeOut": [
+        "No clickable ancestor navigation.",
+        "No search integration."
+      ],
+      "checklist": [
+        "Parse the key path into segments.",
+        "Render a breadcrumb trail.",
+        "Keep long paths readable."
+      ],
+      "acceptance": [
+        "Inspect view shows contract context plus the current key path.",
+        "Breadcrumb text remains readable for long paths."
+      ],
+      "verification": [
+        "Open inspect pages with short and long key paths.",
+        "Confirm the breadcrumb remains correct."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nBuild inspector breadcrumb text from contract and key path\n\n2. Problem / Why\nInspect pages need obvious context and a quick way to understand where the current node lives.\n\n3. Current Product Context\nThe inspect route still lacks breadcrumb context.\n\n4. Scope In\n- Build breadcrumb text from route params.\n- Render it in the inspect header.\n\n5. Scope Out\n- No clickable ancestor navigation.\n- No search integration.\n\n6. Implementation Checklist\n- Parse the key path into segments.\n- Render a breadcrumb trail.\n- Keep long paths readable.\n\n7. Acceptance Criteria\n- Inspect view shows contract context plus the current key path.\n- Breadcrumb text remains readable for long paths.\n\n8. Verification Steps\n- Open inspect pages with short and long key paths.\n- Confirm the breadcrumb remains correct.\n\n9. Dependencies\n- SSL-D46\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D49",
+      "title": "Add an inspector metadata card for ledger details",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D46",
+        "SSL-D33"
+      ],
+      "problem": "Developers need the non-value context of a ledger entry, not just the decoded body.",
+      "context": "Stored ledger records already carry metadata such as durability and ledger fields, but the inspect view does not show them.",
+      "scopeIn": [
+        "Render one metadata card.",
+        "Show durability and ledger fields when available."
+      ],
+      "scopeOut": [
+        "No diff metadata.",
+        "No schema mismatch warning."
+      ],
+      "checklist": [
+        "Read the current entry record.",
+        "Display only fields that exist.",
+        "Hide absent optional fields cleanly."
+      ],
+      "acceptance": [
+        "Inspect view shows available ledger metadata clearly.",
+        "Missing optional values do not render noisy placeholders."
+      ],
+      "verification": [
+        "Open inspect with records that have optional metadata.",
+        "Open inspect with records that do not have optional metadata."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd an inspector metadata card for ledger details\n\n2. Problem / Why\nDevelopers need the non-value context of a ledger entry, not just the decoded body.\n\n3. Current Product Context\nStored ledger records already carry metadata such as durability and ledger fields, but the inspect view does not show them.\n\n4. Scope In\n- Render one metadata card.\n- Show durability and ledger fields when available.\n\n5. Scope Out\n- No diff metadata.\n- No schema mismatch warning.\n\n6. Implementation Checklist\n- Read the current entry record.\n- Display only fields that exist.\n- Hide absent optional fields cleanly.\n\n7. Acceptance Criteria\n- Inspect view shows available ledger metadata clearly.\n- Missing optional values do not render noisy placeholders.\n\n8. Verification Steps\n- Open inspect with records that have optional metadata.\n- Open inspect with records that do not have optional metadata.\n\n9. Dependencies\n- SSL-D46\n- SSL-D33\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D50",
+      "title": "Add an inspector raw XDR card with copy action",
+      "phase": 3,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D46",
+        "SSL-D33"
+      ],
+      "problem": "A debugger should always preserve access to the raw payload when higher-level decoding is incomplete or suspect.",
+      "context": "Stored ledger records can carry raw XDR, but the inspect view does not expose it yet.",
+      "scopeIn": [
+        "Render one raw XDR card.",
+        "Add one copy action when raw payload is present."
+      ],
+      "scopeOut": [
+        "No pretty-print decoder.",
+        "No binary diff UI."
+      ],
+      "checklist": [
+        "Read raw XDR from the current entry.",
+        "Render it in a scroll-safe code block.",
+        "Add a copy button and a clear fallback when raw XDR is missing."
+      ],
+      "acceptance": [
+        "Inspect view shows raw XDR when available.",
+        "Inspect view renders a non-error fallback when raw XDR is absent."
+      ],
+      "verification": [
+        "Open inspect with an entry that includes raw XDR.",
+        "Use the copy button.",
+        "Test an entry without raw XDR and confirm the fallback state."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:3",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd an inspector raw XDR card with copy action\n\n2. Problem / Why\nA debugger should always preserve access to the raw payload when higher-level decoding is incomplete or suspect.\n\n3. Current Product Context\nStored ledger records can carry raw XDR, but the inspect view does not expose it yet.\n\n4. Scope In\n- Render one raw XDR card.\n- Add one copy action when raw payload is present.\n\n5. Scope Out\n- No pretty-print decoder.\n- No binary diff UI.\n\n6. Implementation Checklist\n- Read raw XDR from the current entry.\n- Render it in a scroll-safe code block.\n- Add a copy button and a clear fallback when raw XDR is missing.\n\n7. Acceptance Criteria\n- Inspect view shows raw XDR when available.\n- Inspect view renders a non-error fallback when raw XDR is absent.\n\n8. Verification Steps\n- Open inspect with an entry that includes raw XDR.\n- Use the copy button.\n- Test an entry without raw XDR and confirm the fallback state.\n\n9. Dependencies\n- SSL-D46\n- SSL-D33\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:3\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D51",
+      "title": "Add a contract WASM fetch helper",
+      "phase": 4,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D30"
+      ],
+      "problem": "Schema-aware overlays cannot start until the app can fetch the contract code bytes.",
+      "context": "Contract state fetching is landing, but the separate code-fetch path required for schema extraction is still missing.",
+      "scopeIn": [
+        "Retrieve contract WASM bytes for a contract ID.",
+        "Return them in a stable shape."
+      ],
+      "scopeOut": [
+        "No parsing of the spec section.",
+        "No schema UI."
+      ],
+      "checklist": [
+        "Build the required code request.",
+        "Return raw WASM bytes.",
+        "Normalize obvious fetch failures."
+      ],
+      "acceptance": [
+        "Given a contract with available code, the helper returns WASM bytes.",
+        "Failures produce handled error results instead of untyped crashes."
+      ],
+      "verification": [
+        "Add mocked tests for success and failure.",
+        "Confirm the returned bytes shape is stable."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:4",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a contract WASM fetch helper\n\n2. Problem / Why\nSchema-aware overlays cannot start until the app can fetch the contract code bytes.\n\n3. Current Product Context\nContract state fetching is landing, but the separate code-fetch path required for schema extraction is still missing.\n\n4. Scope In\n- Retrieve contract WASM bytes for a contract ID.\n- Return them in a stable shape.\n\n5. Scope Out\n- No parsing of the spec section.\n- No schema UI.\n\n6. Implementation Checklist\n- Build the required code request.\n- Return raw WASM bytes.\n- Normalize obvious fetch failures.\n\n7. Acceptance Criteria\n- Given a contract with available code, the helper returns WASM bytes.\n- Failures produce handled error results instead of untyped crashes.\n\n8. Verification Steps\n- Add mocked tests for success and failure.\n- Confirm the returned bytes shape is stable.\n\n9. Dependencies\n- SSL-D30\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:4\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D52",
+      "title": "Extract contractspecv0 from WASM bytes",
+      "phase": 4,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D51"
+      ],
+      "problem": "Fetching WASM is not enough; the app specifically needs the contract spec section.",
+      "context": "The relevant custom section is not yet isolated from fetched WASM bytes.",
+      "scopeIn": [
+        "Read the WASM module safely.",
+        "Extract the contractspecv0 custom section payload when present."
+      ],
+      "scopeOut": [
+        "No SCSpec parsing.",
+        "No schema labeling UI."
+      ],
+      "checklist": [
+        "Load the WASM module safely.",
+        "Read the custom section.",
+        "Return section bytes or a handled missing-section result."
+      ],
+      "acceptance": [
+        "WASM with a contract spec returns the section payload.",
+        "WASM without that section fails gracefully without crashing the app."
+      ],
+      "verification": [
+        "Add tests with a fixture that contains the section.",
+        "Add tests with a fixture that does not."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:4",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nExtract contractspecv0 from WASM bytes\n\n2. Problem / Why\nFetching WASM is not enough; the app specifically needs the contract spec section.\n\n3. Current Product Context\nThe relevant custom section is not yet isolated from fetched WASM bytes.\n\n4. Scope In\n- Read the WASM module safely.\n- Extract the contractspecv0 custom section payload when present.\n\n5. Scope Out\n- No SCSpec parsing.\n- No schema labeling UI.\n\n6. Implementation Checklist\n- Load the WASM module safely.\n- Read the custom section.\n- Return section bytes or a handled missing-section result.\n\n7. Acceptance Criteria\n- WASM with a contract spec returns the section payload.\n- WASM without that section fails gracefully without crashing the app.\n\n8. Verification Steps\n- Add tests with a fixture that contains the section.\n- Add tests with a fixture that does not.\n\n9. Dependencies\n- SSL-D51\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:4\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D53",
+      "title": "Add parsed spec state keyed by contract ID",
+      "phase": 4,
+      "area": "state",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D52"
+      ],
+      "problem": "Parsed schema data should be reusable across explorer and inspect views.",
+      "context": "There is no shared cache or state surface for contract specs today.",
+      "scopeIn": [
+        "Add one store slice keyed by contract ID.",
+        "Store parsed or lookup-ready schema data."
+      ],
+      "scopeOut": [
+        "No UI rendering.",
+        "No invalidation policy beyond simple replace behavior."
+      ],
+      "checklist": [
+        "Add set and get actions.",
+        "Store schema data by contract ID.",
+        "Keep the slice separate from raw ledger entry data."
+      ],
+      "acceptance": [
+        "Parsed spec data can be stored and retrieved per contract.",
+        "The slice does not affect other store state."
+      ],
+      "verification": [
+        "Add store tests for saving and replacing spec data.",
+        "Cover multiple contract IDs."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:4",
+        "area:state",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd parsed spec state keyed by contract ID\n\n2. Problem / Why\nParsed schema data should be reusable across explorer and inspect views.\n\n3. Current Product Context\nThere is no shared cache or state surface for contract specs today.\n\n4. Scope In\n- Add one store slice keyed by contract ID.\n- Store parsed or lookup-ready schema data.\n\n5. Scope Out\n- No UI rendering.\n- No invalidation policy beyond simple replace behavior.\n\n6. Implementation Checklist\n- Add set and get actions.\n- Store schema data by contract ID.\n- Keep the slice separate from raw ledger entry data.\n\n7. Acceptance Criteria\n- Parsed spec data can be stored and retrieved per contract.\n- The slice does not affect other store state.\n\n8. Verification Steps\n- Add store tests for saving and replacing spec data.\n- Cover multiple contract IDs.\n\n9. Dependencies\n- SSL-D52\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:4\n- area:state\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D54",
+      "title": "Resolve enum labels from parsed spec entries",
+      "phase": 4,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D53"
+      ],
+      "problem": "Numeric enum values are far more useful when shown with their semantic labels.",
+      "context": "There is not yet any lookup logic that maps stored values to enum names.",
+      "scopeIn": [
+        "Build an enum lookup map from parsed specs.",
+        "Return labels for matching enum values."
+      ],
+      "scopeOut": [
+        "No struct field labeling.",
+        "No mismatch logic."
+      ],
+      "checklist": [
+        "Build a lookup map from parsed spec entries.",
+        "Return labels for matching enum values.",
+        "Fall back cleanly when no match exists."
+      ],
+      "acceptance": [
+        "Known enum values resolve to labels.",
+        "Unknown or non-enum values leave the UI on the raw value path."
+      ],
+      "verification": [
+        "Add tests for matching enum values.",
+        "Add tests for missing labels and mismatched types."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:4",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nResolve enum labels from parsed spec entries\n\n2. Problem / Why\nNumeric enum values are far more useful when shown with their semantic labels.\n\n3. Current Product Context\nThere is not yet any lookup logic that maps stored values to enum names.\n\n4. Scope In\n- Build an enum lookup map from parsed specs.\n- Return labels for matching enum values.\n\n5. Scope Out\n- No struct field labeling.\n- No mismatch logic.\n\n6. Implementation Checklist\n- Build a lookup map from parsed spec entries.\n- Return labels for matching enum values.\n- Fall back cleanly when no match exists.\n\n7. Acceptance Criteria\n- Known enum values resolve to labels.\n- Unknown or non-enum values leave the UI on the raw value path.\n\n8. Verification Steps\n- Add tests for matching enum values.\n- Add tests for missing labels and mismatched types.\n\n9. Dependencies\n- SSL-D53\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:4\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D55",
+      "title": "Resolve struct field labels for tuple indices and symbol keys",
+      "phase": 4,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D53"
+      ],
+      "problem": "Stored tuples and map-like field layouts are hard to read without semantic field names.",
+      "context": "Explorer rows and inspect view still show raw tuple indices and key symbols only.",
+      "scopeIn": [
+        "Map tuple indices to field labels when possible.",
+        "Map matching symbol keys to field labels when possible."
+      ],
+      "scopeOut": [
+        "No version-mismatch warning.",
+        "No full schema editor."
+      ],
+      "checklist": [
+        "Build field label lookup logic from parsed struct definitions.",
+        "Support index-based cases.",
+        "Support symbol-key cases and return no label when matching is ambiguous."
+      ],
+      "acceptance": [
+        "Supported struct-backed values can resolve field labels.",
+        "Unmatched values continue to render safely without guessed labels."
+      ],
+      "verification": [
+        "Add tests for tuple-based structs.",
+        "Add tests for symbol-key structs.",
+        "Add tests for ambiguous or missing-field cases."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:4",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nResolve struct field labels for tuple indices and symbol keys\n\n2. Problem / Why\nStored tuples and map-like field layouts are hard to read without semantic field names.\n\n3. Current Product Context\nExplorer rows and inspect view still show raw tuple indices and key symbols only.\n\n4. Scope In\n- Map tuple indices to field labels when possible.\n- Map matching symbol keys to field labels when possible.\n\n5. Scope Out\n- No version-mismatch warning.\n- No full schema editor.\n\n6. Implementation Checklist\n- Build field label lookup logic from parsed struct definitions.\n- Support index-based cases.\n- Support symbol-key cases and return no label when matching is ambiguous.\n\n7. Acceptance Criteria\n- Supported struct-backed values can resolve field labels.\n- Unmatched values continue to render safely without guessed labels.\n\n8. Verification Steps\n- Add tests for tuple-based structs.\n- Add tests for symbol-key structs.\n- Add tests for ambiguous or missing-field cases.\n\n9. Dependencies\n- SSL-D53\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:4\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D56",
+      "title": "Detect schema mismatch and show a warning banner",
+      "phase": 4,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D54",
+        "SSL-D55"
+      ],
+      "problem": "The debugger must warn when stored data no longer matches the current contract schema.",
+      "context": "Enum and field-label lookups are landing, but there is still no graceful mismatch fallback path.",
+      "scopeIn": [
+        "Detect obvious schema mismatches.",
+        "Show a warning banner while preserving raw data visibility."
+      ],
+      "scopeOut": [
+        "No migration hints.",
+        "No contract-version history viewer."
+      ],
+      "checklist": [
+        "Add mismatch detection rules for obvious shape conflicts.",
+        "Set a visible warning state.",
+        "Keep raw data rendering active when mismatch is detected."
+      ],
+      "acceptance": [
+        "Mismatched data shows a clear warning banner.",
+        "Mismatch does not prevent raw node rendering in explorer and inspect."
+      ],
+      "verification": [
+        "Feed a deliberately mismatched schema and data pair.",
+        "Confirm the warning appears while raw values remain visible."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:4",
+        "area:ui",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nDetect schema mismatch and show a warning banner\n\n2. Problem / Why\nThe debugger must warn when stored data no longer matches the current contract schema.\n\n3. Current Product Context\nEnum and field-label lookups are landing, but there is still no graceful mismatch fallback path.\n\n4. Scope In\n- Detect obvious schema mismatches.\n- Show a warning banner while preserving raw data visibility.\n\n5. Scope Out\n- No migration hints.\n- No contract-version history viewer.\n\n6. Implementation Checklist\n- Add mismatch detection rules for obvious shape conflicts.\n- Set a visible warning state.\n- Keep raw data rendering active when mismatch is detected.\n\n7. Acceptance Criteria\n- Mismatched data shows a clear warning banner.\n- Mismatch does not prevent raw node rendering in explorer and inspect.\n\n8. Verification Steps\n- Feed a deliberately mismatched schema and data pair.\n- Confirm the warning appears while raw values remain visible.\n\n9. Dependencies\n- SSL-D54\n- SSL-D55\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:4\n- area:ui\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D57",
+      "title": "Scaffold the discovery route for a contract",
+      "phase": 5,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D14"
+      ],
+      "problem": "Simulation-based key discovery needs its own route instead of being buried inside the main explorer shell.",
+      "context": "There is still no route dedicated to discovery workflows.",
+      "scopeIn": [
+        "Add /contracts/:contractId/discovery.",
+        "Render minimal contract-aware shell content."
+      ],
+      "scopeOut": [
+        "No simulation calls.",
+        "No footprint parsing."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Render contract-aware discovery placeholder content.",
+        "Keep it refresh-safe."
+      ],
+      "acceptance": [
+        "Visiting the discovery route renders a stable page with contract context.",
+        "The route survives direct refresh."
+      ],
+      "verification": [
+        "Open the discovery route directly in the browser.",
+        "Refresh it and confirm the route still resolves."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:5",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the discovery route for a contract\n\n2. Problem / Why\nSimulation-based key discovery needs its own route instead of being buried inside the main explorer shell.\n\n3. Current Product Context\nThere is still no route dedicated to discovery workflows.\n\n4. Scope In\n- Add /contracts/:contractId/discovery.\n- Render minimal contract-aware shell content.\n\n5. Scope Out\n- No simulation calls.\n- No footprint parsing.\n\n6. Implementation Checklist\n- Create the route.\n- Render contract-aware discovery placeholder content.\n- Keep it refresh-safe.\n\n7. Acceptance Criteria\n- Visiting the discovery route renders a stable page with contract context.\n- The route survives direct refresh.\n\n8. Verification Steps\n- Open the discovery route directly in the browser.\n- Refresh it and confirm the route still resolves.\n\n9. Dependencies\n- SSL-D14\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:5\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D58",
+      "title": "Add simulation form state for function name and JSON args",
+      "phase": 5,
+      "area": "state",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D57"
+      ],
+      "problem": "Discovery needs a controlled input model before it can validate or submit simulation requests.",
+      "context": "The discovery route shell lacks state for the function call users want to simulate.",
+      "scopeIn": [
+        "Add controlled state for function name.",
+        "Add controlled state for args JSON text and a simple submit lifecycle."
+      ],
+      "scopeOut": [
+        "No actual simulation request.",
+        "No schema-aware argument typing."
+      ],
+      "checklist": [
+        "Add fields for function name and args text.",
+        "Track idle, loading, success, and error state or equivalent.",
+        "Expose simple update and reset actions."
+      ],
+      "acceptance": [
+        "The discovery form can hold and update both inputs predictably.",
+        "Form state does not leak across route changes."
+      ],
+      "verification": [
+        "Open discovery and type into both fields.",
+        "Clear or reset them and confirm the values update correctly."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:5",
+        "area:state",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd simulation form state for function name and JSON args\n\n2. Problem / Why\nDiscovery needs a controlled input model before it can validate or submit simulation requests.\n\n3. Current Product Context\nThe discovery route shell lacks state for the function call users want to simulate.\n\n4. Scope In\n- Add controlled state for function name.\n- Add controlled state for args JSON text and a simple submit lifecycle.\n\n5. Scope Out\n- No actual simulation request.\n- No schema-aware argument typing.\n\n6. Implementation Checklist\n- Add fields for function name and args text.\n- Track idle, loading, success, and error state or equivalent.\n- Expose simple update and reset actions.\n\n7. Acceptance Criteria\n- The discovery form can hold and update both inputs predictably.\n- Form state does not leak across route changes.\n\n8. Verification Steps\n- Open discovery and type into both fields.\n- Clear or reset them and confirm the values update correctly.\n\n9. Dependencies\n- SSL-D57\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:5\n- area:state\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D59",
+      "title": "Add a function name validator for discovery",
+      "phase": 5,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D58"
+      ],
+      "problem": "Discovery should block obviously malformed function names before hitting RPC simulation.",
+      "context": "The discovery form state exists, but there is no focused validator for the function name field.",
+      "scopeIn": [
+        "Validate the function name string.",
+        "Return a clear valid or invalid result."
+      ],
+      "scopeOut": [
+        "No JSON args validation.",
+        "No RPC work."
+      ],
+      "checklist": [
+        "Trim the input.",
+        "Reject blank values and invalid characters.",
+        "Accept normal contract function naming patterns."
+      ],
+      "acceptance": [
+        "Blank and malformed function names fail validation.",
+        "Expected contract function names pass."
+      ],
+      "verification": [
+        "Add tests for blank strings.",
+        "Add tests for invalid characters.",
+        "Add tests for representative valid names."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:5",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a function name validator for discovery\n\n2. Problem / Why\nDiscovery should block obviously malformed function names before hitting RPC simulation.\n\n3. Current Product Context\nThe discovery form state exists, but there is no focused validator for the function name field.\n\n4. Scope In\n- Validate the function name string.\n- Return a clear valid or invalid result.\n\n5. Scope Out\n- No JSON args validation.\n- No RPC work.\n\n6. Implementation Checklist\n- Trim the input.\n- Reject blank values and invalid characters.\n- Accept normal contract function naming patterns.\n\n7. Acceptance Criteria\n- Blank and malformed function names fail validation.\n- Expected contract function names pass.\n\n8. Verification Steps\n- Add tests for blank strings.\n- Add tests for invalid characters.\n- Add tests for representative valid names.\n\n9. Dependencies\n- SSL-D58\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:5\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D60",
+      "title": "Add a JSON args validator for discovery",
+      "phase": 5,
+      "area": "data",
+      "size": "xs",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D58"
+      ],
+      "problem": "Invalid JSON arguments should fail in the form before RPC simulation is attempted.",
+      "context": "The args field currently has no structured validation.",
+      "scopeIn": [
+        "Validate args text as JSON.",
+        "Return a clear pass or fail result."
+      ],
+      "scopeOut": [
+        "No semantic argument typing against the contract spec.",
+        "No RPC work."
+      ],
+      "checklist": [
+        "Parse the text safely.",
+        "Surface invalid JSON cleanly.",
+        "Handle the chosen empty-input behavior explicitly."
+      ],
+      "acceptance": [
+        "Valid JSON input passes.",
+        "Invalid JSON fails without crashing the page."
+      ],
+      "verification": [
+        "Add tests for valid objects and arrays.",
+        "Add tests for malformed JSON.",
+        "Add tests for the expected empty-input behavior."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:5",
+        "area:data",
+        "size:xs",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a JSON args validator for discovery\n\n2. Problem / Why\nInvalid JSON arguments should fail in the form before RPC simulation is attempted.\n\n3. Current Product Context\nThe args field currently has no structured validation.\n\n4. Scope In\n- Validate args text as JSON.\n- Return a clear pass or fail result.\n\n5. Scope Out\n- No semantic argument typing against the contract spec.\n- No RPC work.\n\n6. Implementation Checklist\n- Parse the text safely.\n- Surface invalid JSON cleanly.\n- Handle the chosen empty-input behavior explicitly.\n\n7. Acceptance Criteria\n- Valid JSON input passes.\n- Invalid JSON fails without crashing the page.\n\n8. Verification Steps\n- Add tests for valid objects and arrays.\n- Add tests for malformed JSON.\n- Add tests for the expected empty-input behavior.\n\n9. Dependencies\n- SSL-D58\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:5\n- area:data\n- size:xs\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D61",
+      "title": "Add a simulateTransaction request helper",
+      "phase": 5,
+      "area": "network",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D30"
+      ],
+      "problem": "Discovery cannot harvest unknown keys until the app can call Soroban simulation directly.",
+      "context": "The discovery route and input validation are landing, but there is still no RPC helper for simulation.",
+      "scopeIn": [
+        "Send a simulation request.",
+        "Return the parsed response in a stable shape."
+      ],
+      "scopeOut": [
+        "No UI rendering.",
+        "No footprint extraction in this issue."
+      ],
+      "checklist": [
+        "Build the JSON-RPC request payload.",
+        "Normalize obvious request failures.",
+        "Return the response fields needed by later discovery steps."
+      ],
+      "acceptance": [
+        "A valid simulation request returns parsed data.",
+        "Request failures produce handled error results instead of untyped crashes."
+      ],
+      "verification": [
+        "Add mocked tests for a success response.",
+        "Add mocked tests for a failure response."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:5",
+        "area:network",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a simulateTransaction request helper\n\n2. Problem / Why\nDiscovery cannot harvest unknown keys until the app can call Soroban simulation directly.\n\n3. Current Product Context\nThe discovery route and input validation are landing, but there is still no RPC helper for simulation.\n\n4. Scope In\n- Send a simulation request.\n- Return the parsed response in a stable shape.\n\n5. Scope Out\n- No UI rendering.\n- No footprint extraction in this issue.\n\n6. Implementation Checklist\n- Build the JSON-RPC request payload.\n- Normalize obvious request failures.\n- Return the response fields needed by later discovery steps.\n\n7. Acceptance Criteria\n- A valid simulation request returns parsed data.\n- Request failures produce handled error results instead of untyped crashes.\n\n8. Verification Steps\n- Add mocked tests for a success response.\n- Add mocked tests for a failure response.\n\n9. Dependencies\n- SSL-D30\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:5\n- area:network\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D62",
+      "title": "Extract read and write footprint keys from simulation results",
+      "phase": 5,
+      "area": "data",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D61"
+      ],
+      "problem": "Simulation is only useful for discovery once the app can turn the response footprint into a list of candidate keys.",
+      "context": "The returned payload still needs focused key extraction logic.",
+      "scopeIn": [
+        "Extract read footprint keys.",
+        "Extract write footprint keys and dedupe them."
+      ],
+      "scopeOut": [
+        "No watchlist integration.",
+        "No automatic fetch of every discovered key."
+      ],
+      "checklist": [
+        "Parse the relevant footprint sections.",
+        "Normalize keys into one stable identity shape.",
+        "Dedupe repeated keys."
+      ],
+      "acceptance": [
+        "Read and write footprint keys are extracted correctly.",
+        "Keys are deduped and returned in a predictable order and shape."
+      ],
+      "verification": [
+        "Add tests for read-only payloads.",
+        "Add tests for write-only payloads.",
+        "Add tests for mixed and duplicate-key payloads."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:5",
+        "area:data",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nExtract read and write footprint keys from simulation results\n\n2. Problem / Why\nSimulation is only useful for discovery once the app can turn the response footprint into a list of candidate keys.\n\n3. Current Product Context\nThe returned payload still needs focused key extraction logic.\n\n4. Scope In\n- Extract read footprint keys.\n- Extract write footprint keys and dedupe them.\n\n5. Scope Out\n- No watchlist integration.\n- No automatic fetch of every discovered key.\n\n6. Implementation Checklist\n- Parse the relevant footprint sections.\n- Normalize keys into one stable identity shape.\n- Dedupe repeated keys.\n\n7. Acceptance Criteria\n- Read and write footprint keys are extracted correctly.\n- Keys are deduped and returned in a predictable order and shape.\n\n8. Verification Steps\n- Add tests for read-only payloads.\n- Add tests for write-only payloads.\n- Add tests for mixed and duplicate-key payloads.\n\n9. Dependencies\n- SSL-D61\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:5\n- area:data\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D63",
+      "title": "Add a discovery result list with loading/error states and open-in-explorer action",
+      "phase": 5,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D57",
+        "SSL-D62"
+      ],
+      "problem": "Extracted keys need a visible workflow so users can move from discovery into actual state inspection.",
+      "context": "There is still no result UI for successful or failed discovery attempts.",
+      "scopeIn": [
+        "Render loading, error, and success states.",
+        "List discovered keys with an action to open a selected key in contract browsing flow."
+      ],
+      "scopeOut": [
+        "No watchlist pinning.",
+        "No automatic fetch of every discovered key."
+      ],
+      "checklist": [
+        "Show loading and error states.",
+        "Render deduped discovered keys on success.",
+        "Wire one action that routes the user back into contract exploration."
+      ],
+      "acceptance": [
+        "Running discovery shows a clear lifecycle.",
+        "Successful keys are listed and choosing one opens it in the contract browsing flow."
+      ],
+      "verification": [
+        "Mock successful and failed discovery results.",
+        "Confirm lifecycle states and the open action behave correctly."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:5",
+        "area:ui",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a discovery result list with loading/error states and open-in-explorer action\n\n2. Problem / Why\nExtracted keys need a visible workflow so users can move from discovery into actual state inspection.\n\n3. Current Product Context\nThere is still no result UI for successful or failed discovery attempts.\n\n4. Scope In\n- Render loading, error, and success states.\n- List discovered keys with an action to open a selected key in contract browsing flow.\n\n5. Scope Out\n- No watchlist pinning.\n- No automatic fetch of every discovered key.\n\n6. Implementation Checklist\n- Show loading and error states.\n- Render deduped discovered keys on success.\n- Wire one action that routes the user back into contract exploration.\n\n7. Acceptance Criteria\n- Running discovery shows a clear lifecycle.\n- Successful keys are listed and choosing one opens it in the contract browsing flow.\n\n8. Verification Steps\n- Mock successful and failed discovery results.\n- Confirm lifecycle states and the open action behave correctly.\n\n9. Dependencies\n- SSL-D57\n- SSL-D62\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:5\n- area:ui\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D64",
+      "title": "Scaffold the history route for a contract",
+      "phase": 6,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D14"
+      ],
+      "problem": "Snapshot and diff work needs a dedicated route instead of being hidden inside unrelated pages.",
+      "context": "There is still no contract history route.",
+      "scopeIn": [
+        "Add /contracts/:contractId/history.",
+        "Render minimal contract-aware shell content."
+      ],
+      "scopeOut": [
+        "No diff engine.",
+        "No snapshot capture action yet."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Show contract-aware placeholder content.",
+        "Keep the route refresh-safe."
+      ],
+      "acceptance": [
+        "Visiting the history route renders a stable page with contract context.",
+        "The route survives direct refresh."
+      ],
+      "verification": [
+        "Open the history route directly in the browser.",
+        "Refresh it and confirm the route still resolves."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:6",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the history route for a contract\n\n2. Problem / Why\nSnapshot and diff work needs a dedicated route instead of being hidden inside unrelated pages.\n\n3. Current Product Context\nThere is still no contract history route.\n\n4. Scope In\n- Add /contracts/:contractId/history.\n- Render minimal contract-aware shell content.\n\n5. Scope Out\n- No diff engine.\n- No snapshot capture action yet.\n\n6. Implementation Checklist\n- Create the route.\n- Show contract-aware placeholder content.\n- Keep the route refresh-safe.\n\n7. Acceptance Criteria\n- Visiting the history route renders a stable page with contract context.\n- The route survives direct refresh.\n\n8. Verification Steps\n- Open the history route directly in the browser.\n- Refresh it and confirm the route still resolves.\n\n9. Dependencies\n- SSL-D14\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:6\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D65",
+      "title": "Add a snapshot store slice keyed by contract",
+      "phase": 6,
+      "area": "state",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D31"
+      ],
+      "problem": "History features need a dedicated state surface for captured contract snapshots.",
+      "context": "There is no snapshot slice in the store yet.",
+      "scopeIn": [
+        "Add a slice keyed by contract ID.",
+        "Hold a list of immutable snapshots."
+      ],
+      "scopeOut": [
+        "No diff computation.",
+        "No persistence across reloads."
+      ],
+      "checklist": [
+        "Define a snapshot record shape.",
+        "Add add and list actions.",
+        "Keep snapshot data separate from live ledger entry state."
+      ],
+      "acceptance": [
+        "Snapshots can be stored and read per contract.",
+        "The slice does not mutate live contract data."
+      ],
+      "verification": [
+        "Add store tests for adding multiple snapshots.",
+        "Cover multiple contract IDs."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:6",
+        "area:state",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a snapshot store slice keyed by contract\n\n2. Problem / Why\nHistory features need a dedicated state surface for captured contract snapshots.\n\n3. Current Product Context\nThere is no snapshot slice in the store yet.\n\n4. Scope In\n- Add a slice keyed by contract ID.\n- Hold a list of immutable snapshots.\n\n5. Scope Out\n- No diff computation.\n- No persistence across reloads.\n\n6. Implementation Checklist\n- Define a snapshot record shape.\n- Add add and list actions.\n- Keep snapshot data separate from live ledger entry state.\n\n7. Acceptance Criteria\n- Snapshots can be stored and read per contract.\n- The slice does not mutate live contract data.\n\n8. Verification Steps\n- Add store tests for adding multiple snapshots.\n- Cover multiple contract IDs.\n\n9. Dependencies\n- SSL-D31\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:6\n- area:state\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D66",
+      "title": "Add a snapshot capture action for current contract state",
+      "phase": 6,
+      "area": "state",
+      "size": "s",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D34",
+        "SSL-D65"
+      ],
+      "problem": "History is not useful until users can freeze the current state at a moment in time.",
+      "context": "Live contract state is already held in the store, but there is no capture action yet.",
+      "scopeIn": [
+        "Clone the current contract state into a new snapshot.",
+        "Attach timestamped snapshot metadata."
+      ],
+      "scopeOut": [
+        "No compare UI.",
+        "No named snapshot editing."
+      ],
+      "checklist": [
+        "Read the active contract and current loaded entries.",
+        "Clone them immutably.",
+        "Append a timestamped snapshot record to the snapshot slice."
+      ],
+      "acceptance": [
+        "Capturing a snapshot stores an immutable copy.",
+        "Stored snapshots do not change when live state changes later."
+      ],
+      "verification": [
+        "Capture a snapshot.",
+        "Mutate the live state.",
+        "Confirm the stored snapshot remains unchanged."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:6",
+        "area:state",
+        "size:s",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a snapshot capture action for current contract state\n\n2. Problem / Why\nHistory is not useful until users can freeze the current state at a moment in time.\n\n3. Current Product Context\nLive contract state is already held in the store, but there is no capture action yet.\n\n4. Scope In\n- Clone the current contract state into a new snapshot.\n- Attach timestamped snapshot metadata.\n\n5. Scope Out\n- No compare UI.\n- No named snapshot editing.\n\n6. Implementation Checklist\n- Read the active contract and current loaded entries.\n- Clone them immutably.\n- Append a timestamped snapshot record to the snapshot slice.\n\n7. Acceptance Criteria\n- Capturing a snapshot stores an immutable copy.\n- Stored snapshots do not change when live state changes later.\n\n8. Verification Steps\n- Capture a snapshot.\n- Mutate the live state.\n- Confirm the stored snapshot remains unchanged.\n\n9. Dependencies\n- SSL-D34\n- SSL-D65\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:6\n- area:state\n- size:s\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D67",
+      "title": "Build a semantic diff helper for normalized entries",
+      "phase": 6,
+      "area": "data",
+      "size": "m",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D16",
+        "SSL-D65"
+      ],
+      "problem": "Snapshot compare requires more than raw string comparison.",
+      "context": "There is still no diff engine over snapshot contents.",
+      "scopeIn": [
+        "Compare two snapshot entry sets.",
+        "Classify created, deleted, modified, and unchanged cases using normalized data."
+      ],
+      "scopeOut": [
+        "No visual diff tree.",
+        "No synchronized compare panes."
+      ],
+      "checklist": [
+        "Compare keys present in each snapshot.",
+        "Detect created, deleted, modified, and unchanged cases.",
+        "Compare normalized values deeply enough for semantic equality."
+      ],
+      "acceptance": [
+        "The helper correctly classifies representative snapshot differences.",
+        "The helper avoids false positives on semantically unchanged data."
+      ],
+      "verification": [
+        "Add tests covering created, deleted, modified, and unchanged entry cases."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:6",
+        "area:data",
+        "size:m",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nBuild a semantic diff helper for normalized entries\n\n2. Problem / Why\nSnapshot compare requires more than raw string comparison.\n\n3. Current Product Context\nThere is still no diff engine over snapshot contents.\n\n4. Scope In\n- Compare two snapshot entry sets.\n- Classify created, deleted, modified, and unchanged cases using normalized data.\n\n5. Scope Out\n- No visual diff tree.\n- No synchronized compare panes.\n\n6. Implementation Checklist\n- Compare keys present in each snapshot.\n- Detect created, deleted, modified, and unchanged cases.\n- Compare normalized values deeply enough for semantic equality.\n\n7. Acceptance Criteria\n- The helper correctly classifies representative snapshot differences.\n- The helper avoids false positives on semantically unchanged data.\n\n8. Verification Steps\n- Add tests covering created, deleted, modified, and unchanged entry cases.\n\n9. Dependencies\n- SSL-D16\n- SSL-D65\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:6\n- area:data\n- size:m\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D68",
+      "title": "Add a history empty state and diff summary card",
+      "phase": 6,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D64",
+        "SSL-D65",
+        "SSL-D67"
+      ],
+      "problem": "Users need clear feedback both when there is nothing to compare and when a compare result is available.",
+      "context": "There is no user-facing state for history and diff yet.",
+      "scopeIn": [
+        "Render an empty state when fewer than two snapshots exist.",
+        "Render a compact summary card when diff data is available."
+      ],
+      "scopeOut": [
+        "No full changed-node browser.",
+        "No split-pane diff viewer."
+      ],
+      "checklist": [
+        "Detect insufficient snapshots.",
+        "Show a capture-first message.",
+        "Show counts for created, deleted, modified, and unchanged entries when diff data exists."
+      ],
+      "acceptance": [
+        "History shows a clear empty state before enough snapshots exist.",
+        "History shows a readable summary after a compare result is available."
+      ],
+      "verification": [
+        "Visit history with zero or one snapshot.",
+        "Visit it with two snapshots and a mocked diff result."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:6",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a history empty state and diff summary card\n\n2. Problem / Why\nUsers need clear feedback both when there is nothing to compare and when a compare result is available.\n\n3. Current Product Context\nThere is no user-facing state for history and diff yet.\n\n4. Scope In\n- Render an empty state when fewer than two snapshots exist.\n- Render a compact summary card when diff data is available.\n\n5. Scope Out\n- No full changed-node browser.\n- No split-pane diff viewer.\n\n6. Implementation Checklist\n- Detect insufficient snapshots.\n- Show a capture-first message.\n- Show counts for created, deleted, modified, and unchanged entries when diff data exists.\n\n7. Acceptance Criteria\n- History shows a clear empty state before enough snapshots exist.\n- History shows a readable summary after a compare result is available.\n\n8. Verification Steps\n- Visit history with zero or one snapshot.\n- Visit it with two snapshots and a mocked diff result.\n\n9. Dependencies\n- SSL-D64\n- SSL-D65\n- SSL-D67\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:6\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D69",
+      "title": "Add a watchlist store slice with add/remove actions",
+      "phase": 7,
+      "area": "state",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D31"
+      ],
+      "problem": "Developers need a small set of pinned keys they can return to quickly across routes.",
+      "context": "There is no shared watchlist state yet.",
+      "scopeIn": [
+        "Add a watchlist slice keyed by contract ID.",
+        "Support add and remove actions with duplicate protection."
+      ],
+      "scopeOut": [
+        "No route UI.",
+        "No persistence across reloads."
+      ],
+      "checklist": [
+        "Define a watchlist item shape.",
+        "Add add and remove actions.",
+        "Dedupe by contract ID plus key path."
+      ],
+      "acceptance": [
+        "Keys can be pinned and removed per contract.",
+        "Adding the same key twice does not create duplicates."
+      ],
+      "verification": [
+        "Add store tests for add, remove, and duplicate cases across multiple contracts."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:state",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd a watchlist store slice with add/remove actions\n\n2. Problem / Why\nDevelopers need a small set of pinned keys they can return to quickly across routes.\n\n3. Current Product Context\nThere is no shared watchlist state yet.\n\n4. Scope In\n- Add a watchlist slice keyed by contract ID.\n- Support add and remove actions with duplicate protection.\n\n5. Scope Out\n- No route UI.\n- No persistence across reloads.\n\n6. Implementation Checklist\n- Define a watchlist item shape.\n- Add add and remove actions.\n- Dedupe by contract ID plus key path.\n\n7. Acceptance Criteria\n- Keys can be pinned and removed per contract.\n- Adding the same key twice does not create duplicates.\n\n8. Verification Steps\n- Add store tests for add, remove, and duplicate cases across multiple contracts.\n\n9. Dependencies\n- SSL-D31\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:state\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D70",
+      "title": "Scaffold the watchlist route with empty state and inspect action",
+      "phase": 7,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D14",
+        "SSL-D69"
+      ],
+      "problem": "Pinned keys need a dedicated destination instead of living only as hidden store state.",
+      "context": "There is still no watchlist page.",
+      "scopeIn": [
+        "Add /contracts/:contractId/watchlist.",
+        "Render either an empty state or a simple list with an inspect action."
+      ],
+      "scopeOut": [
+        "No sorting rules.",
+        "No change-status badges."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Read watchlist items for the active contract.",
+        "Show an empty state when none exist and add one inspect action per item."
+      ],
+      "acceptance": [
+        "The watchlist route resolves cleanly.",
+        "The route shows a helpful empty state and allows navigation to inspect for saved items."
+      ],
+      "verification": [
+        "Visit the route with no items.",
+        "Add a watchlist item and confirm the list and inspect action render."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the watchlist route with empty state and inspect action\n\n2. Problem / Why\nPinned keys need a dedicated destination instead of living only as hidden store state.\n\n3. Current Product Context\nThere is still no watchlist page.\n\n4. Scope In\n- Add /contracts/:contractId/watchlist.\n- Render either an empty state or a simple list with an inspect action.\n\n5. Scope Out\n- No sorting rules.\n- No change-status badges.\n\n6. Implementation Checklist\n- Create the route.\n- Read watchlist items for the active contract.\n- Show an empty state when none exist and add one inspect action per item.\n\n7. Acceptance Criteria\n- The watchlist route resolves cleanly.\n- The route shows a helpful empty state and allows navigation to inspect for saved items.\n\n8. Verification Steps\n- Visit the route with no items.\n- Add a watchlist item and confirm the list and inspect action render.\n\n9. Dependencies\n- SSL-D14\n- SSL-D69\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D71",
+      "title": "Add Add-to-watchlist actions in discovery results and inspector",
+      "phase": 7,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D50",
+        "SSL-D63",
+        "SSL-D69"
+      ],
+      "problem": "Watchlists are only useful if users can pin keys from the workflows where they discover or inspect them.",
+      "context": "Discovery results, inspector view, and watchlist state are landing separately.",
+      "scopeIn": [
+        "Add one pin action in discovery results.",
+        "Add one pin action in inspect view backed by the watchlist slice."
+      ],
+      "scopeOut": [
+        "No remove action outside the watchlist route.",
+        "No persistence across reloads."
+      ],
+      "checklist": [
+        "Add the pin action to both surfaces.",
+        "Pass contract ID and key path into the watchlist slice.",
+        "Keep duplicate adds harmless."
+      ],
+      "acceptance": [
+        "Users can pin a discovered or inspected key.",
+        "Repeated pin attempts do not create duplicate watchlist items."
+      ],
+      "verification": [
+        "Pin the same key from discovery and inspect.",
+        "Confirm the watchlist still contains one item."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd Add-to-watchlist actions in discovery results and inspector\n\n2. Problem / Why\nWatchlists are only useful if users can pin keys from the workflows where they discover or inspect them.\n\n3. Current Product Context\nDiscovery results, inspector view, and watchlist state are landing separately.\n\n4. Scope In\n- Add one pin action in discovery results.\n- Add one pin action in inspect view backed by the watchlist slice.\n\n5. Scope Out\n- No remove action outside the watchlist route.\n- No persistence across reloads.\n\n6. Implementation Checklist\n- Add the pin action to both surfaces.\n- Pass contract ID and key path into the watchlist slice.\n- Keep duplicate adds harmless.\n\n7. Acceptance Criteria\n- Users can pin a discovered or inspected key.\n- Repeated pin attempts do not create duplicate watchlist items.\n\n8. Verification Steps\n- Pin the same key from discovery and inspect.\n- Confirm the watchlist still contains one item.\n\n9. Dependencies\n- SSL-D50\n- SSL-D63\n- SSL-D69\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D72",
+      "title": "Scaffold the settings network route with a saved RPC summary",
+      "phase": 7,
+      "area": "ui",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [
+        "SSL-D03"
+      ],
+      "problem": "Network configuration should have a dedicated settings surface instead of living only in the header selector.",
+      "context": "There is still no route for reviewing saved network configuration.",
+      "scopeIn": [
+        "Add /settings/network.",
+        "Render a summary of the currently saved preset and custom RPC configuration."
+      ],
+      "scopeOut": [
+        "No provider API key support.",
+        "No advanced diagnostics history."
+      ],
+      "checklist": [
+        "Create the route.",
+        "Read saved network state.",
+        "Render current preset and custom values plus connection-status summary if present."
+      ],
+      "acceptance": [
+        "Visiting settings/network shows the current saved network config in a dedicated route.",
+        "The summary reflects current stored settings after refresh."
+      ],
+      "verification": [
+        "Change the saved network config.",
+        "Visit the route and refresh it.",
+        "Confirm the summary reflects current state."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:ui",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nScaffold the settings network route with a saved RPC summary\n\n2. Problem / Why\nNetwork configuration should have a dedicated settings surface instead of living only in the header selector.\n\n3. Current Product Context\nThere is still no route for reviewing saved network configuration.\n\n4. Scope In\n- Add /settings/network.\n- Render a summary of the currently saved preset and custom RPC configuration.\n\n5. Scope Out\n- No provider API key support.\n- No advanced diagnostics history.\n\n6. Implementation Checklist\n- Create the route.\n- Read saved network state.\n- Render current preset and custom values plus connection-status summary if present.\n\n7. Acceptance Criteria\n- Visiting settings/network shows the current saved network config in a dedicated route.\n- The summary reflects current stored settings after refresh.\n\n8. Verification Steps\n- Change the saved network config.\n- Visit the route and refresh it.\n- Confirm the summary reflects current state.\n\n9. Dependencies\n- SSL-D03\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:ui\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D73",
+      "title": "Add preferences state and scaffold the settings preferences route",
+      "phase": 7,
+      "area": "state",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "Byte-view and big-integer formatting choices need a home in app state before later display preferences can be respected consistently.",
+      "context": "There is still no preferences state or route for bytes and bigint display modes.",
+      "scopeIn": [
+        "Add preference state for byte and bigint display modes.",
+        "Create /settings/preferences to edit those values."
+      ],
+      "scopeOut": [
+        "No full application of those preferences across every viewer in this issue.",
+        "No theme settings."
+      ],
+      "checklist": [
+        "Define default preference values.",
+        "Add set and reset actions.",
+        "Scaffold a settings page with selectors for byte mode and bigint mode."
+      ],
+      "acceptance": [
+        "Users can view and change byte and bigint display preferences in one route.",
+        "Chosen values update shared preference state."
+      ],
+      "verification": [
+        "Visit settings/preferences.",
+        "Change both selectors.",
+        "Confirm shared preference state updates correctly."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:state",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nAdd preferences state and scaffold the settings preferences route\n\n2. Problem / Why\nByte-view and big-integer formatting choices need a home in app state before later display preferences can be respected consistently.\n\n3. Current Product Context\nThere is still no preferences state or route for bytes and bigint display modes.\n\n4. Scope In\n- Add preference state for byte and bigint display modes.\n- Create /settings/preferences to edit those values.\n\n5. Scope Out\n- No full application of those preferences across every viewer in this issue.\n- No theme settings.\n\n6. Implementation Checklist\n- Define default preference values.\n- Add set and reset actions.\n- Scaffold a settings page with selectors for byte mode and bigint mode.\n\n7. Acceptance Criteria\n- Users can view and change byte and bigint display preferences in one route.\n- Chosen values update shared preference state.\n\n8. Verification Steps\n- Visit settings/preferences.\n- Change both selectors.\n- Confirm shared preference state updates correctly.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:state\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D74",
+      "title": "Add a bounded retry/backoff helper for RPC 429 and 5xx responses",
+      "phase": 7,
+      "area": "network",
+      "size": "xs",
+      "difficulty": "intermediate",
+      "goodFirst": false,
+      "dependencies": [
+        "SSL-D30"
+      ],
+      "problem": "Public Soroban RPC endpoints can rate-limit or fail transiently, and the app needs one reusable retry rule instead of ad hoc error handling.",
+      "context": "Network helpers are landing, but there is still no shared backoff policy for retryable failures.",
+      "scopeIn": [
+        "Retry only retryable HTTP or JSON-RPC failures.",
+        "Cap attempts with a small bounded backoff policy."
+      ],
+      "scopeOut": [
+        "No automatic polling loop.",
+        "No user-facing countdown UI."
+      ],
+      "checklist": [
+        "Retry only 429 and retryable 5xx failures.",
+        "Cap the number of attempts.",
+        "Surface the final failure clearly when retries are exhausted."
+      ],
+      "acceptance": [
+        "Retryable failures are retried up to the configured cap.",
+        "Non-retryable failures are not retried."
+      ],
+      "verification": [
+        "Add tests for success-after-retry.",
+        "Add tests for retry exhaustion.",
+        "Add tests for a non-retryable failure."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "phase:7",
+        "area:network",
+        "size:xs",
+        "difficulty:intermediate"
+      ],
+      "body": "1. Title\nAdd a bounded retry/backoff helper for RPC 429 and 5xx responses\n\n2. Problem / Why\nPublic Soroban RPC endpoints can rate-limit or fail transiently, and the app needs one reusable retry rule instead of ad hoc error handling.\n\n3. Current Product Context\nNetwork helpers are landing, but there is still no shared backoff policy for retryable failures.\n\n4. Scope In\n- Retry only retryable HTTP or JSON-RPC failures.\n- Cap attempts with a small bounded backoff policy.\n\n5. Scope Out\n- No automatic polling loop.\n- No user-facing countdown UI.\n\n6. Implementation Checklist\n- Retry only 429 and retryable 5xx failures.\n- Cap the number of attempts.\n- Surface the final failure clearly when retries are exhausted.\n\n7. Acceptance Criteria\n- Retryable failures are retried up to the configured cap.\n- Non-retryable failures are not retried.\n\n8. Verification Steps\n- Add tests for success-after-retry.\n- Add tests for retry exhaustion.\n- Add tests for a non-retryable failure.\n\n9. Dependencies\n- SSL-D30\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- phase:7\n- area:network\n- size:xs\n- difficulty:intermediate\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    },
+    {
+      "id": "SSL-D75",
+      "title": "Trap focus and support Escape-close in the mobile sidebar",
+      "phase": 7,
+      "area": "qa",
+      "size": "s",
+      "difficulty": "beginner",
+      "goodFirst": true,
+      "dependencies": [],
+      "problem": "The mobile explorer drawer is currently only partially accessible for keyboard users.",
+      "context": "The app already has a mobile sidebar overlay, but it still needs keyboard-safe focus handling.",
+      "scopeIn": [
+        "Keep focus inside the open mobile sidebar.",
+        "Close it on Escape and return focus to the opener."
+      ],
+      "scopeOut": [
+        "No redesign of sidebar content.",
+        "No desktop navigation changes."
+      ],
+      "checklist": [
+        "Capture the opener element.",
+        "Trap focus while the drawer is open.",
+        "Restore focus to the opener on close."
+      ],
+      "acceptance": [
+        "Opening the mobile drawer traps keyboard focus inside it.",
+        "Pressing Escape closes it and returns focus to the trigger button."
+      ],
+      "verification": [
+        "Test the drawer with keyboard only on a mobile viewport.",
+        "Confirm tab order, Escape close, and focus restoration."
+      ],
+      "labels": [
+        "enhancement",
+        "help wanted",
+        "good first issue",
+        "phase:7",
+        "area:qa",
+        "size:s",
+        "difficulty:beginner"
+      ],
+      "body": "1. Title\nTrap focus and support Escape-close in the mobile sidebar\n\n2. Problem / Why\nThe mobile explorer drawer is currently only partially accessible for keyboard users.\n\n3. Current Product Context\nThe app already has a mobile sidebar overlay, but it still needs keyboard-safe focus handling.\n\n4. Scope In\n- Keep focus inside the open mobile sidebar.\n- Close it on Escape and return focus to the opener.\n\n5. Scope Out\n- No redesign of sidebar content.\n- No desktop navigation changes.\n\n6. Implementation Checklist\n- Capture the opener element.\n- Trap focus while the drawer is open.\n- Restore focus to the opener on close.\n\n7. Acceptance Criteria\n- Opening the mobile drawer traps keyboard focus inside it.\n- Pressing Escape closes it and returns focus to the trigger button.\n\n8. Verification Steps\n- Test the drawer with keyboard only on a mobile viewport.\n- Confirm tab order, Escape close, and focus restoration.\n\n9. Dependencies\n- None.\n\n10. Suggested Labels\n- enhancement\n- help wanted\n- good first issue\n- phase:7\n- area:qa\n- size:s\n- difficulty:beginner\n\n11. Definition of Done\n- The scoped change is merged, the acceptance criteria are met, and the relevant local checks pass."
+    }
+  ]
+}
