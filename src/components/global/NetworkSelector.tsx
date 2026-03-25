@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { testRpcConnection } from '../../lib/network/testConnection'
 import { validateRpcUrl } from '../../lib/network/validation'
 import { useLensStore } from '../../store/lensStore'
 import { DEFAULT_NETWORKS } from '../../store/types'
@@ -26,6 +27,8 @@ export default function NetworkSelector() {
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [customRpcUrl, setCustomRpcUrl] = useState('')
   const [validationError, setValidationError] = useState('')
+  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [testError, setTestError] = useState('')
   const [isHydrated, setIsHydrated] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -105,6 +108,8 @@ export default function NetworkSelector() {
       })
       setShowCustomInput(false)
       setValidationError('')
+      setTestStatus('idle')
+      setTestError('')
       setCustomRpcUrl('')
       setLastCustomUrl(customRpcUrl.trim())
     } else {
@@ -112,10 +117,32 @@ export default function NetworkSelector() {
     }
   }
 
+  const handleTestConnection = async () => {
+    const validation = validateRpcUrl(customRpcUrl)
+    if (!validation.isValid) {
+      setValidationError(validation.error || 'Invalid URL')
+      return
+    }
+
+    setTestStatus('loading')
+    setTestError('')
+
+    const result = await testRpcConnection(customRpcUrl.trim())
+
+    if (result.success) {
+      setTestStatus('success')
+    } else {
+      setTestStatus('error')
+      setTestError(result.error || 'Connection failed')
+    }
+  }
+
   const handleCancelCustom = () => {
     setShowCustomInput(false)
     setCustomRpcUrl('')
     setValidationError('')
+    setTestStatus('idle')
+    setTestError('')
   }
 
   const handleCustomUrlChange = (url: string) => {
@@ -127,6 +154,10 @@ export default function NetworkSelector() {
     } else {
       setValidationError('')
     }
+
+    // Reset test status when URL changes
+    setTestStatus('idle')
+    setTestError('')
 
     // Update network config immediately for real-time feedback
     setNetworkConfig({
@@ -251,24 +282,64 @@ export default function NetworkSelector() {
                   {validationError}
                 </p>
               )}
+
+              {testStatus === 'error' && testError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">
+                    warning
+                  </span>
+                  {testError}
+                </p>
+              )}
+
+              {testStatus === 'success' && (
+                <p className="text-xs text-green-500 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">
+                    check_circle
+                  </span>
+                  Connection successful
+                </p>
+              )}
             </div>
 
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-between items-center">
               <button
                 type="button"
-                onClick={handleCancelCustom}
-                className="px-3 py-1.5 text-sm text-text-muted hover:text-text-main transition-colors"
+                onClick={handleTestConnection}
+                disabled={
+                  !customRpcUrl.trim() ||
+                  !!validationError ||
+                  testStatus === 'loading'
+                }
+                className="text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50 transition-colors flex items-center gap-1"
               >
-                Cancel
+                {testStatus === 'loading' ? (
+                  <span className="animate-spin size-3 border-2 border-primary border-t-transparent rounded-full" />
+                ) : (
+                  <span className="material-symbols-outlined text-[14px]">
+                    network_check
+                  </span>
+                )}
+                Test Connection
               </button>
-              <button
-                type="button"
-                onClick={handleApplyCustomUrl}
-                disabled={!customRpcUrl.trim() || !!validationError}
-                className="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Apply
-              </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelCustom}
+                  className="px-3 py-1.5 text-sm text-text-muted hover:text-text-main transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyCustomUrl}
+                  disabled={!customRpcUrl.trim() || !!validationError}
+                  className="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           </div>
         </div>
