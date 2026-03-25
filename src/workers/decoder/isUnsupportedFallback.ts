@@ -4,7 +4,7 @@ import type { UnsupportedFallback } from './normalizeScVal'
  * Runtime type guard for UnsupportedFallback objects.
  *
  * Narrows `value` to `UnsupportedFallback` only when it is a non-null object
- * with `__unsupported === true` and `variant` as a string.
+ * with `__unsupported === true` and `variant` as a non-empty string.
  * Partial objects or wrong field types are rejected.
  */
 export function isUnsupportedFallback(
