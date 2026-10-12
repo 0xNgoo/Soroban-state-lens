@@ -8,6 +8,7 @@ welcome.
 - Node.js 20 or newer
 - Bun 1.0 or newer
 
+
 Run `bun run check:env` to verify the Node.js and Bun versions.
 
 ## Set up locally
@@ -16,3 +17,4 @@ Run `bun run check:env` to verify the Node.js and Bun versions.
 git clone [https://github.com/Vynix-Labs/Soroban-state-lens.git](https://github.com/Vynix-Labs/Soroban-state-lens.git)
 cd Soroban-state-lens
 bun install
+
