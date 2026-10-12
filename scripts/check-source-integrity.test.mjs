@@ -30,6 +30,29 @@ test('ignores execution words inside comments and ordinary strings', () => {
   )
 })
 
+test('keeps executable code visible after regex literals', () => {
+  for (const source of [
+    'const pattern = /a\\//; eval(payload)',
+    'const pattern = /a\\/*/; new Function(payload)',
+    'const pattern = /[\\/]/; eval(payload)',
+    'if (ready) /a\\//.test(input); eval(payload)',
+    'const pattern = `${/a\\//.source}`; eval(payload)',
+    'const result = obj.return / eval(payload) / scale;',
+    'const result = obj.if(ready) / eval(payload) / scale;',
+    'const result = count++ / eval(payload) / scale;',
+    'const result = total / divisor; eval(payload); // /a\\//',
+  ]) {
+    assert.ok(rules(source).includes('dynamic-code-execution'), source)
+  }
+  assert.deepEqual(rules('const pattern = /eval\\(payload\\)/;'), [])
+  assert.deepEqual(rules('const pattern = /[/*]eval\\(payload\\)["\']/;'), [])
+  assert.ok(
+    rules('const result = total / eval(payload) / scale;').includes(
+      'dynamic-code-execution',
+    ),
+  )
+})
+
 test('permits XDR/base64 data, hexadecimal limbs, and fixed module imports', () => {
   assert.deepEqual(
     rules(
@@ -84,6 +107,26 @@ test('rejects remote imports but allows ordinary URLs and data fixtures', () => 
   assert.deepEqual(
     rules(
       'const url = "https://rpc.example.invalid"; const input = \'import("https://example.invalid")\';',
+    ),
+    [],
+  )
+})
+
+test('inspects static template literals like quoted literals', () => {
+  for (const source of [
+    'import(`https://example.invalid/payload.mjs`)',
+    'import(`data:text/javascript,export default 1`)',
+    'require(`https://example.invalid/payload.mjs`)',
+    'const outer = `${import(`data:text/javascript,export default 1`)}`',
+  ]) {
+    assert.ok(rules(source).includes('remote-code-import'), source)
+  }
+  assert.ok(
+    rules('globalThis[`eval`](payload)').includes('dynamic-code-execution'),
+  )
+  assert.deepEqual(
+    rules(
+      'const url = `https://rpc.example.invalid`; import(`@stellar/stellar-sdk`);',
     ),
     [],
   )

@@ -14,6 +14,32 @@ export function codeView(source) {
   const chars = source.split('')
   const literals = []
   const templates = []
+  const parentheses = []
+  const expressionKeywords = new Set([
+    'return',
+    'throw',
+    'case',
+    'delete',
+    'void',
+    'typeof',
+    'new',
+    'in',
+    'instanceof',
+    'yield',
+    'await',
+    'else',
+    'do',
+  ])
+  const controlKeywords = new Set([
+    'if',
+    'while',
+    'for',
+    'with',
+    'switch',
+    'catch',
+  ])
+  let canStartRegex = true
+  let previousWord = ''
   let mode = 'code'
   let start = 0
   const hide = (index) => {
@@ -35,44 +61,106 @@ export function codeView(source) {
       hide(i)
       if (c === '\\') hide(++i)
       else if (c === (mode === 'single' ? "'" : '"')) {
-        literals.push({ start, value: source.slice(start + 1, i) })
+        literals.push({ start, end: i + 1, value: source.slice(start + 1, i) })
         mode = 'code'
+        canStartRegex = false
       }
     } else if (mode === 'template') {
+      const template = templates[templates.length - 1]
       if (c === '$' && next === '{') {
         hide(i)
         hide(++i)
-        templates.push(1)
+        template.interpolated = true
+        template.depth = 1
         mode = 'code'
+        canStartRegex = true
+        previousWord = ''
       } else {
         hide(i)
         if (c === '\\') hide(++i)
-        else if (c === '`') mode = 'code'
+        else if (c === '`') {
+          if (!template.interpolated) {
+            literals.push({
+              start: template.start,
+              end: i + 1,
+              value: source.slice(template.start + 1, i),
+            })
+          }
+          templates.pop()
+          mode = 'code'
+          canStartRegex = false
+        }
       }
-    } else if (c === '/' && next === '/') {
+    } else if (c === '/' && next === '/' && source[i - 1] !== '\\') {
       hide(i)
       hide(++i)
       mode = 'line'
-    } else if (c === '/' && next === '*') {
+    } else if (c === '/' && next === '*' && source[i - 1] !== '\\') {
       hide(i)
       hide(++i)
       mode = 'block'
+    } else if (c === '/' && canStartRegex) {
+      // Consume the complete regex before interpreting comment or quote tokens.
+      let end = i + 1
+      let characterClass = false
+      for (; end < source.length; end += 1) {
+        const character = source[end]
+        if (character === '\n' || character === '\r') break
+        if (character === '\\') end += 1
+        else if (character === '[') characterClass = true
+        else if (character === ']') characterClass = false
+        else if (character === '/' && !characterClass) break
+      }
+      if (source[end] === '/') {
+        while (/[a-z]/i.test(source[end + 1] ?? '') && end + 1 < source.length)
+          end += 1
+        while (i < end) hide(i++)
+        hide(i)
+        canStartRegex = false
+      } else {
+        canStartRegex = true
+      }
+      previousWord = ''
     } else if (c === "'" || c === '"') {
       start = i
       hide(i)
       mode = c === "'" ? 'single' : 'double'
     } else if (c === '`') {
       hide(i)
+      templates.push({ start: i, depth: 0, interpolated: false })
       mode = 'template'
+    } else if (/\s/.test(c)) {
+      continue
+    } else if (/[a-z_$]/i.test(c)) {
+      const wordStart = i
+      while (/[\w$]/.test(source[i + 1] ?? '') && i + 1 < source.length) i += 1
+      const property = previousWord === '.'
+      previousWord = property ? '' : source.slice(wordStart, i + 1)
+      canStartRegex = !property && expressionKeywords.has(previousWord)
+    } else if (c === '(') {
+      parentheses.push(controlKeywords.has(previousWord))
+      canStartRegex = true
+      previousWord = ''
+    } else if (c === ')') {
+      canStartRegex = parentheses.pop() ?? false
+      previousWord = ''
     } else if (templates.length && c === '{') {
-      templates[templates.length - 1] += 1
+      templates[templates.length - 1].depth += 1
+      canStartRegex = true
+      previousWord = ''
     } else if (templates.length && c === '}') {
-      templates[templates.length - 1] -= 1
-      if (templates[templates.length - 1] === 0) {
-        templates.pop()
+      const template = templates[templates.length - 1]
+      template.depth -= 1
+      if (template.depth === 0) {
         hide(i)
         mode = 'template'
       }
+      canStartRegex = false
+      previousWord = ''
+    } else {
+      if ((c === '+' || c === '-') && next === c) i += 1
+      else canStartRegex = /[=(:,\[!&|?{;~+*%<>^\/-]/.test(c)
+      previousWord = c === '.' ? '.' : ''
     }
   }
   return { code: chars.join(''), literals }
@@ -131,7 +219,7 @@ export function inspectSource(path, source) {
   }
   for (const literal of literals) {
     const prefix = code.slice(Math.max(0, literal.start - 300), literal.start)
-    const suffix = code.slice(literal.start + literal.value.length + 2)
+    const suffix = code.slice(literal.end)
     if (
       literal.value === 'eval' &&
       /\[\s*$/.test(prefix) &&
