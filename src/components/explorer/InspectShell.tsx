@@ -43,7 +43,7 @@ export function InspectShell({
 
   const handlePinKey = () => {
     if (keyPath) {
-      addToWatchlist(contractId, keyPath)
+      addToWatchlist(normalizedContractId || contractId, keyPath)
     }
   }
 
@@ -157,7 +157,9 @@ export function InspectShell({
               <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">
                 Last Modified Ledger
               </div>
-              <div className="text-white font-mono">{metadata.lastModifiedLedger}</div>
+              <div className="text-white font-mono">
+                {metadata.lastModifiedLedger}
+              </div>
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">

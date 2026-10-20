@@ -60,4 +60,25 @@ describe('InspectShell', () => {
 
     expect(addToWatchlist).toHaveBeenCalledWith('C123', '/state/ledger')
   })
+
+  it('pins padded route IDs to the normalized contract watchlist bucket', () => {
+    useLensStore.setState({ watchlist: {} })
+
+    render(
+      <InspectShell
+        contractId=" c123 "
+        normalizedContractId="C123"
+        keyPath="/state/ledger"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to watchlist' }))
+
+    expect(
+      useLensStore.getState().getWatchlistForContract('C123'),
+    ).toHaveLength(1)
+    expect(
+      useLensStore.getState().getWatchlistForContract(' c123 '),
+    ).toHaveLength(0)
+  })
 })

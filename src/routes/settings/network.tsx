@@ -16,7 +16,7 @@ function SettingsNetwork() {
   const lastCustomUrl = useLensStore((state) => state.lastCustomUrl)
 
   const isCustomNetwork = !Object.values(DEFAULT_NETWORKS).some(
-    (network) => network.rpcUrl === networkConfig.rpcUrl
+    (network) => network.rpcUrl === networkConfig.rpcUrl,
   )
 
   const getConnectionStatusColor = (status: ConnectionStatus) => {
@@ -60,7 +60,7 @@ function SettingsNetwork() {
           <h2 className="text-lg font-semibold text-white mb-4">
             Current Network Configuration
           </h2>
-          
+
           <div className="space-y-4">
             {/* Network Type */}
             <div className="flex justify-between items-center py-3 border-b border-gray-700">
@@ -73,20 +73,26 @@ function SettingsNetwork() {
             {/* Network ID */}
             <div className="flex justify-between items-center py-3 border-b border-gray-700">
               <span className="text-gray-300">Network ID</span>
-              <span className="text-white font-medium">{networkConfig.networkId}</span>
+              <span className="text-white font-medium">
+                {networkConfig.networkId}
+              </span>
             </div>
 
             {/* RPC URL */}
             <div className="flex justify-between items-center py-3 border-b border-gray-700">
               <span className="text-gray-300">RPC URL</span>
-              <span className="text-white font-mono text-sm">{networkConfig.rpcUrl}</span>
+              <span className="text-white font-mono text-sm">
+                {networkConfig.rpcUrl}
+              </span>
             </div>
 
             {/* Horizon URL (if available) */}
             {networkConfig.horizonUrl && (
               <div className="flex justify-between items-center py-3 border-b border-gray-700">
                 <span className="text-gray-300">Horizon URL</span>
-                <span className="text-white font-mono text-sm">{networkConfig.horizonUrl}</span>
+                <span className="text-white font-mono text-sm">
+                  {networkConfig.horizonUrl}
+                </span>
               </div>
             )}
 
@@ -101,7 +107,9 @@ function SettingsNetwork() {
             {/* Connection Status */}
             <div className="flex justify-between items-center py-3">
               <span className="text-gray-300">Connection Status</span>
-              <span className={`font-medium ${getConnectionStatusColor(connectionStatus)}`}>
+              <span
+                className={`font-medium ${getConnectionStatusColor(connectionStatus)}`}
+              >
                 {getConnectionStatusText(connectionStatus)}
               </span>
             </div>
@@ -116,7 +124,9 @@ function SettingsNetwork() {
             </h2>
             <div className="flex justify-between items-center py-3">
               <span className="text-gray-300">URL</span>
-              <span className="text-white font-mono text-sm">{lastCustomUrl}</span>
+              <span className="text-white font-mono text-sm">
+                {lastCustomUrl}
+              </span>
             </div>
           </div>
         )}
@@ -155,6 +165,48 @@ function SettingsNetwork() {
             ))}
           </div>
         </div>
+
+        <section
+          aria-labelledby="browser-rpc-troubleshooting"
+          className="bg-gray-800 rounded-lg p-6"
+        >
+          <h2
+            id="browser-rpc-troubleshooting"
+            className="text-lg font-semibold text-white mb-4"
+          >
+            Browser RPC connection troubleshooting
+          </h2>
+          <p className="text-gray-300 mb-4">
+            RPC requests are sent from this app in your browser. An endpoint
+            that works with a server-side tool does not necessarily allow
+            browser requests from this app&apos;s origin.
+          </p>
+          <ol className="list-decimal pl-5 space-y-3 text-gray-300">
+            <li>
+              Retry the connection from this app and inspect the request in your
+              browser&apos;s developer tools Network and Console panels. Check
+              the request and any OPTIONS preflight response.
+            </li>
+            <li>
+              An explicit CORS or blocked-preflight message means the browser
+              could not grant this app access to the response. Choose an RPC
+              provider endpoint that permits browser access from this app&apos;s
+              origin, or ask the provider to allow it. Do not disable browser
+              security protections.
+            </li>
+            <li>
+              Offline, DNS, TLS, or connection-refused errors point to network
+              reachability. A generic “Failed to fetch” alone cannot distinguish
+              those failures from CORS; use the Network and Console details
+              before deciding.
+            </li>
+            <li>
+              A JSON-RPC error response means the browser reached the endpoint.
+              Check the requested method, parameters, and network rather than
+              treating it as a CORS failure.
+            </li>
+          </ol>
+        </section>
       </div>
     </div>
   )

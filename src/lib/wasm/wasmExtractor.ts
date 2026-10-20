@@ -69,6 +69,7 @@ function decodeLeb128String(
 
 /**
  * Safely extracts the contractspecv0 custom section payload from a WASM module
+ * When a module contains multiple contractspecv0 sections, the first one is returned.
  * @param wasmBytes - The WASM module bytes
  * @returns ExtractSectionResult indicating success or failure with reason
  */
@@ -160,6 +161,7 @@ export function extractContractspecv0(
 
       // Check if this is the contractspecv0 section
       if (name === 'contractspecv0') {
+        // Repeated sections are resolved deterministically: the first is authoritative.
         // Return everything after the name as the payload
         const payloadStart = afterNameOffset
         const payloadEnd = offset + sectionSize
