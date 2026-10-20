@@ -16,13 +16,17 @@ describe('mapLedgerEntriesToStoreEntries', () => {
       decodedValuesByKey: {
         'ledger-key-1': { kind: 'primitive', scType: 'string', value: 'hello' },
       },
+      keyInfoByKey: {
+        'ledger-key-1': { type: 'ContractData', displayName: 'counter' },
+      },
     })
 
     expect(result).toEqual([
       {
-        key: 'CONTRACT_1::Other::ledger-key-1',
+        key: 'CONTRACT_1::ContractData::ledger-key-1',
         contractId: 'CONTRACT_1',
-        type: 'Other',
+        type: 'ContractData',
+        displayName: 'counter',
         value: { kind: 'primitive', scType: 'string', value: 'hello' },
         lastModifiedLedger: 42,
         expirationLedger: 99,
@@ -64,7 +68,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
     expect(result[1]?.key).toBe('CONTRACT_3::Other::b')
   })
 
-  it('preserves explicit contract-code typing when ledger keys imply code records', () => {
+  it('uses decoded key variants rather than inferring types from key text', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_4',
       entries: [
@@ -73,6 +77,12 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         { key: 'account', xdr: 'account-xdr', lastModifiedLedgerSeq: 9 },
         { key: 'unknown', xdr: 'unknown-xdr', lastModifiedLedgerSeq: 10 },
       ],
+      keyInfoByKey: {
+        contract_code: { type: 'ContractCode' },
+        contract_data: { type: 'ContractData' },
+        account: { type: 'Account' },
+        unknown: { type: 'Other' },
+      },
     })
 
     expect(result).toEqual([

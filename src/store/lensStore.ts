@@ -3,6 +3,10 @@ import { persist } from 'zustand/middleware'
 
 import { deepClone } from '../lib/deepClone'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
+import {
+  decodeLedgerKeyInfo,
+  extractContractValueXdr,
+} from '../lib/network/decodeLedgerEntry'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
 import { isDecoderWorkerError } from '../types/decoder-worker'
 import {
@@ -336,19 +340,30 @@ const createContractLoadSlice = (
           return
         }
 
-        activeDecoderWorker = await createDecoderWorkerSafe()
         const decodedValuesByKey: Record<string, unknown> = {}
         const decodeErrorReasonsByKey: Record<string, string> = {}
+        const keyInfoByKey = Object.fromEntries(
+          entries.map((entry) => [entry.key, decodeLedgerKeyInfo(entry.key)]),
+        )
+        const contractValueEntries = entries.flatMap((entry) => {
+          const extracted = extractContractValueXdr(entry.xdr)
+          return extracted.supported
+            ? [{ entry, valueXdr: extracted.valueXdr }]
+            : []
+        })
 
-        for (let index = 0; index < entries.length; index += 1) {
-          const entry = entries[index]
-          if (!activeDecoderWorker) {
-            continue
-          }
+        if (contractValueEntries.length > 0) {
+          activeDecoderWorker = await createDecoderWorkerSafe()
+        }
 
+        for (let index = 0; index < contractValueEntries.length; index += 1) {
+          const { entry, valueXdr } = contractValueEntries[index]
           try {
+            if (!activeDecoderWorker) {
+              continue
+            }
             const result = await activeDecoderWorker.decodeScVal({
-              xdr: entry.xdr,
+              xdr: valueXdr,
             })
             if (isDecoderWorkerError(result)) {
               decodedValuesByKey[entry.key] = entry.xdr
@@ -360,13 +375,15 @@ const createContractLoadSlice = (
           } catch (error) {
             decodedValuesByKey[entry.key] = entry.xdr
             decodeErrorReasonsByKey[entry.key] = getDecoderFailureReason(error)
-            terminateDecoderWorkerSafe(activeDecoderWorker)
+            if (activeDecoderWorker) {
+              terminateDecoderWorkerSafe(activeDecoderWorker)
+            }
             activeDecoderWorker = null
 
             if (isRequestStale()) {
               return
             }
-            if (index < entries.length - 1) {
+            if (index < contractValueEntries.length - 1) {
               activeDecoderWorker = await createDecoderWorkerSafe()
             }
           }
@@ -381,6 +398,7 @@ const createContractLoadSlice = (
           entries,
           decodedValuesByKey,
           decodeErrorReasonsByKey,
+          keyInfoByKey,
         })
 
         set(() => ({

@@ -4,7 +4,11 @@ import Sidebar from '../../components/global/Sidebar'
 import { resetStore, useLensStore } from '../../store/lensStore'
 import type { LedgerEntry } from '../../store/types'
 
-const makeEntry = (key: string, contractId: string, value: unknown = 'value'): LedgerEntry => ({
+const makeEntry = (
+  key: string,
+  contractId: string,
+  value: unknown = 'value',
+): LedgerEntry => ({
   key,
   contractId,
   type: 'ContractData',
@@ -19,10 +23,42 @@ describe('Sidebar History Panel', () => {
 
   it('renders default tree placeholder when activeNavItem is not history', () => {
     render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="watchlist" />)
-    
+
     expect(screen.getByText('Ledger State')).toBeTruthy()
     expect(screen.getByText('Contract_Registry')).toBeTruthy()
     expect(screen.queryByText('Capture First')).toBeNull()
+  })
+
+  it('filters sidebar rows and collapses expanded rows through explorer state', () => {
+    render(
+      <Sidebar
+        open={true}
+        onClose={vi.fn()}
+        variant="pinned"
+        activeNavItem="watchlist"
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Toggle Contract_Registry' }),
+    )
+    expect(useLensStore.getState().expandedNodes).toContain(
+      'sidebar:contract-registry',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    expect(useLensStore.getState().expandedNodes).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.change(
+      screen.getByRole('searchbox', { name: 'Filter ledger entries' }),
+      {
+        target: { value: 'wasm' },
+      },
+    )
+
+    expect(screen.getByText('WASM_Cache')).toBeTruthy()
+    expect(screen.queryByText('System_Contracts')).toBeNull()
   })
 
   it('renders no active contract message when activeNavItem is history but activeContractId is null', () => {
@@ -48,7 +84,7 @@ describe('Sidebar History Panel', () => {
   it('allows capturing snapshot when ledger entries are loaded', () => {
     const state = useLensStore.getState()
     state.setActiveContractId('c1')
-    
+
     // Mock loaded ledger entries in store
     state.upsertLedgerEntries([
       makeEntry('key1', 'c1', 'val1'),
@@ -57,7 +93,9 @@ describe('Sidebar History Panel', () => {
 
     render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="history" />)
 
-    const captureButton = screen.getByRole('button', { name: /Capture Snapshot/i })
+    const captureButton = screen.getByRole('button', {
+      name: /Capture Snapshot/i,
+    })
     expect(captureButton).toBeTruthy()
     expect(captureButton.hasAttribute('disabled')).toBe(false)
 

@@ -1,5 +1,15 @@
-import { ChevronDown, ChevronRight, ChevronUp, Filter, GitCompare, History as HistoryIcon, PlusCircle, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Filter,
+  GitCompare,
+  History as HistoryIcon,
+  PlusCircle,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLensStore } from '../../store/lensStore'
 import { resolveDiffStatus } from '../../lib/diff/resolveDiffStatus'
 
@@ -30,35 +40,7 @@ export default function Sidebar({
         } overflow-hidden shrink-0`}
         aria-label="Ledger State Explorer"
       >
-        <div className="w-100 flex flex-col h-full">
-          {/* Panel Header */}
-          <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
-            <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
-              {isHistory ? 'Compare History' : 'Ledger State'}
-            </span>
-            {!isHistory && (
-              <div className="flex gap-2">
-                <button
-                  className="text-text-muted hover:text-white"
-                  aria-label="Collapse all"
-                >
-                  <ChevronUp size={18} />
-                </button>
-                <button
-                  className="text-text-muted hover:text-white"
-                  aria-label="Filter"
-                >
-                  <Filter size={18} />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Panel Body */}
-          <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-            {isHistory ? <HistoryPanel /> : <TreePlaceholder />}
-          </div>
-        </div>
+        {isHistory ? <HistorySidebarPanel /> : <LedgerStateSidebarPanel />}
       </aside>
     )
   }
@@ -160,20 +142,68 @@ export default function Sidebar({
         }`}
         aria-label="Ledger State Explorer"
       >
-        {/* Panel Header */}
-        <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
-          <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
-            {isHistory ? 'Compare History' : 'Ledger State'}
-          </span>
-          <div className="flex gap-2">
-            {!isHistory && (
-              <button
-                className="text-text-muted hover:text-white"
-                aria-label="Filter"
-              >
-                <Filter size={18} />
-              </button>
-            )}
+        {isHistory ? (
+          <HistorySidebarPanel onClose={onClose} />
+        ) : (
+          <LedgerStateSidebarPanel onClose={onClose} />
+        )}
+      </aside>
+    </>
+  )
+}
+
+function HistorySidebarPanel({ onClose }: { onClose?: () => void }) {
+  return (
+    <div className="w-100 flex flex-col h-full">
+      <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
+        <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
+          Compare History
+        </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-text-muted hover:text-white"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
+        <HistoryPanel />
+      </div>
+    </div>
+  )
+}
+
+function LedgerStateSidebarPanel({ onClose }: { onClose?: () => void }) {
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterText, setFilterText] = useState('')
+  const collapseAll = useLensStore((state) => state.collapseAll)
+
+  return (
+    <div className="w-100 flex flex-col h-full">
+      <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
+        <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
+          Ledger State
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={collapseAll}
+            className="text-text-muted hover:text-white"
+            aria-label="Collapse all"
+          >
+            <ChevronUp size={18} />
+          </button>
+          <button
+            onClick={() => setFilterOpen((open) => !open)}
+            className="text-text-muted hover:text-white"
+            aria-label="Filter"
+            aria-expanded={filterOpen}
+          >
+            <Filter size={18} />
+          </button>
+          {onClose && (
             <button
               onClick={onClose}
               className="text-text-muted hover:text-white"
@@ -181,15 +211,23 @@ export default function Sidebar({
             >
               <X size={18} />
             </button>
-          </div>
+          )}
         </div>
-
-        {/* Panel Body */}
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-          {isHistory ? <HistoryPanel /> : <TreePlaceholder />}
-        </div>
-      </aside>
-    </>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
+        {filterOpen && (
+          <input
+            type="search"
+            aria-label="Filter ledger entries"
+            placeholder="Filter ledger entries"
+            value={filterText}
+            onChange={(event) => setFilterText(event.currentTarget.value)}
+            className="mb-3 w-full rounded border border-border-dark bg-background-dark px-2 py-1 text-xs text-white"
+          />
+        )}
+        <TreePlaceholder filterText={filterText} />
+      </div>
+    </div>
   )
 }
 
@@ -199,7 +237,7 @@ export default function Sidebar({
 function HistoryPanel() {
   const activeContractId = useLensStore((state) => state.activeContractId)
   const allSnapshots = useLensStore((state) => state.snapshots)
-  
+
   const snapshots = useMemo(() => {
     if (!activeContractId) return EMPTY_ARRAY
     return allSnapshots[activeContractId] ?? EMPTY_ARRAY
@@ -220,7 +258,7 @@ function HistoryPanel() {
 
   const handleCapture = () => {
     if (!activeContractId || ledgerEntries.length === 0) return
-    const entriesDict: Record<string, typeof ledgerEntries[0]> = {}
+    const entriesDict: Record<string, (typeof ledgerEntries)[0]> = {}
     ledgerEntries.forEach((entry) => {
       entriesDict[entry.key] = entry
     })
@@ -287,8 +325,13 @@ function HistoryPanel() {
   if (!activeContractId) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4 font-mono select-none">
-        <HistoryIcon size={36} className="text-text-muted mb-4 opacity-40 animate-pulse" />
-        <div className="text-white text-xs font-semibold uppercase tracking-wider mb-2">No Active Contract</div>
+        <HistoryIcon
+          size={36}
+          className="text-text-muted mb-4 opacity-40 animate-pulse"
+        />
+        <div className="text-white text-xs font-semibold uppercase tracking-wider mb-2">
+          No Active Contract
+        </div>
         <p className="text-[11px] text-text-muted max-w-[200px] leading-relaxed">
           Load a contract in the explorer first to inspect and track history.
         </p>
@@ -302,23 +345,25 @@ function HistoryPanel() {
         // Empty State / Capture First View
         <div className="flex flex-col gap-4 p-4 bg-surface-dark/45 border border-border-dark/60 rounded-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
-          
+
           <div className="flex items-center gap-2 text-primary font-semibold text-xs uppercase tracking-wider">
             <HistoryIcon size={16} className="animate-spin-slow" />
             <span>Capture First</span>
           </div>
-          
+
           <p className="text-[11px] text-text-muted leading-relaxed">
-            No history comparison available. Capture at least <strong>two</strong> snapshots of the contract state to compare and view changes.
+            No history comparison available. Capture at least{' '}
+            <strong>two</strong> snapshots of the contract state to compare and
+            view changes.
           </p>
-          
+
           <div className="flex items-center justify-between text-xs border-t border-border-dark/30 pt-3">
             <span className="text-text-muted">Snapshots captured:</span>
             <span className="text-white font-bold bg-white/5 border border-border-dark/60 px-2 py-0.5 rounded font-mono">
               {snapshots.length} / 2
             </span>
           </div>
-          
+
           <button
             onClick={handleCapture}
             disabled={ledgerEntries.length === 0}
@@ -331,10 +376,11 @@ function HistoryPanel() {
             <PlusCircle size={14} />
             Capture Snapshot
           </button>
-          
+
           {ledgerEntries.length === 0 && (
             <p className="text-[10px] text-amber-500/80 text-center leading-relaxed">
-              * Query keys and load contract entries successfully to enable capturing.
+              * Query keys and load contract entries successfully to enable
+              capturing.
             </p>
           )}
         </div>
@@ -343,21 +389,29 @@ function HistoryPanel() {
         <div className="flex flex-col gap-4">
           <div className="p-4 bg-surface-dark border border-border-dark rounded-xl space-y-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
-            
+
             <div className="flex items-center justify-between border-b border-border-dark/50 pb-2">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <GitCompare size={14} className="text-primary" />
                 Diff Summary
               </span>
-              <span className="text-[10px] text-text-muted font-bold px-1.5 py-0.5 rounded bg-white/5 border border-border-dark/40">Compare</span>
+              <span className="text-[10px] text-text-muted font-bold px-1.5 py-0.5 rounded bg-white/5 border border-border-dark/40">
+                Compare
+              </span>
             </div>
-            
+
             <div className="text-xs text-text-muted flex items-center justify-between bg-background-dark/50 p-2 rounded-lg border border-border-dark/30">
-              <span className="text-white font-semibold truncate max-w-[80px]" title={diffSummary?.prevLabel}>
+              <span
+                className="text-white font-semibold truncate max-w-[80px]"
+                title={diffSummary?.prevLabel}
+              >
                 {diffSummary?.prevLabel}
               </span>
               <span className="text-text-muted font-bold">➔</span>
-              <span className="text-white font-semibold truncate max-w-[80px]" title={diffSummary?.nextLabel}>
+              <span
+                className="text-white font-semibold truncate max-w-[80px]"
+                title={diffSummary?.nextLabel}
+              >
                 {diffSummary?.nextLabel}
               </span>
             </div>
@@ -365,20 +419,36 @@ function HistoryPanel() {
             {/* Counts Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 flex flex-col gap-0.5 hover:bg-green-500/15 transition-colors">
-                <span className="text-green-400 font-bold text-base font-mono">+{diffSummary?.created}</span>
-                <span className="text-[9px] text-green-300/80 uppercase font-bold tracking-wider">Created</span>
+                <span className="text-green-400 font-bold text-base font-mono">
+                  +{diffSummary?.created}
+                </span>
+                <span className="text-[9px] text-green-300/80 uppercase font-bold tracking-wider">
+                  Created
+                </span>
               </div>
               <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex flex-col gap-0.5 hover:bg-red-500/15 transition-colors">
-                <span className="text-red-400 font-bold text-base font-mono">-{diffSummary?.deleted}</span>
-                <span className="text-[9px] text-red-300/80 uppercase font-bold tracking-wider">Deleted</span>
+                <span className="text-red-400 font-bold text-base font-mono">
+                  -{diffSummary?.deleted}
+                </span>
+                <span className="text-[9px] text-red-300/80 uppercase font-bold tracking-wider">
+                  Deleted
+                </span>
               </div>
               <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex flex-col gap-0.5 hover:bg-amber-500/15 transition-colors">
-                <span className="text-amber-400 font-bold text-base font-mono">~{diffSummary?.modified}</span>
-                <span className="text-[9px] text-amber-300/80 uppercase font-bold tracking-wider">Modified</span>
+                <span className="text-amber-400 font-bold text-base font-mono">
+                  ~{diffSummary?.modified}
+                </span>
+                <span className="text-[9px] text-amber-300/80 uppercase font-bold tracking-wider">
+                  Modified
+                </span>
               </div>
               <div className="p-2.5 rounded-lg bg-white/5 border border-border-dark/50 flex flex-col gap-0.5 hover:bg-white/10 transition-colors">
-                <span className="text-text-muted font-bold text-base font-mono">{diffSummary?.unchanged}</span>
-                <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider">Unchanged</span>
+                <span className="text-text-muted font-bold text-base font-mono">
+                  {diffSummary?.unchanged}
+                </span>
+                <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider">
+                  Unchanged
+                </span>
               </div>
             </div>
 
@@ -422,7 +492,10 @@ function HistoryPanel() {
                 className="p-2.5 bg-surface-dark border border-border-dark/60 rounded-lg flex items-center justify-between text-xs hover:border-border-dark hover:bg-surface-dark/80 transition-all"
               >
                 <div className="flex flex-col min-w-0 gap-0.5">
-                  <span className="text-white font-medium truncate" title={snap.label}>
+                  <span
+                    className="text-white font-medium truncate"
+                    title={snap.label}
+                  >
                     {snap.label || `Snapshot #${idx + 1}`}
                   </span>
                   <span className="text-[9px] text-text-muted flex gap-1.5 font-mono">
@@ -450,47 +523,81 @@ function HistoryPanel() {
 /**
  * Placeholder tree content - will be replaced with actual tree component
  */
-function TreePlaceholder() {
+function TreePlaceholder({ filterText }: { filterText: string }) {
+  const expandedNodes = useLensStore((state) => state.expandedNodes)
+  const toggleExpanded = useLensStore((state) => state.toggleExpanded)
+  const normalizedFilter = filterText.trim().toLowerCase()
+  const roots = [
+    {
+      id: 'sidebar:contract-registry',
+      label: 'Contract_Registry',
+      child: 'Registry_Config',
+      type: 'Data',
+    },
+    {
+      id: 'sidebar:system-contracts',
+      label: 'System_Contracts',
+      child: 'System_Contract_Data',
+      type: 'Data',
+    },
+    {
+      id: 'sidebar:wasm-cache',
+      label: 'WASM_Cache',
+      child: 'Contract_WASM',
+      type: 'Code',
+    },
+  ]
+  const visibleRoots = roots.filter((root) =>
+    `${root.label} ${root.child} ${root.type}`
+      .toLowerCase()
+      .includes(normalizedFilter),
+  )
+
   return (
     <div className="space-y-1">
-      {/* Expanded folder */}
-      <div className="group">
-        <div className="flex items-center gap-2 py-1.5 px-2 hover:bg-white/5 rounded cursor-pointer text-white">
-          <ChevronDown size={16} className="text-text-muted" />
-          <span className="text-amber-500">📁</span>
-          <span className="truncate">Contract_Registry</span>
-        </div>
-        <div className="pl-4 ml-2 border-l border-border-dark">
-          <div className="flex items-center gap-2 py-1.5 px-2 hover:bg-white/5 rounded cursor-pointer text-text-muted group/item">
-            <span className="w-4" />
-            <span className="text-blue-400">📄</span>
-            <span className="flex-1 truncate group-hover/item:text-white">
-              Registry_Config
-            </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-dark border border-border-dark">
-              Data
-            </span>
+      {visibleRoots.map((root) => {
+        const isExpanded = expandedNodes.includes(root.id)
+        const childMatches = root.child.toLowerCase().includes(normalizedFilter)
+
+        return (
+          <div className="group" key={root.id}>
+            <button
+              type="button"
+              aria-label={`Toggle ${root.label}`}
+              aria-expanded={isExpanded}
+              onClick={() => toggleExpanded(root.id)}
+              className="w-full flex items-center gap-2 py-1.5 px-2 hover:bg-white/5 rounded text-left text-white"
+            >
+              {isExpanded ? (
+                <ChevronDown size={16} className="text-text-muted" />
+              ) : (
+                <ChevronRight size={16} className="text-text-muted" />
+              )}
+              <span className="text-amber-500">📁</span>
+              <span className="truncate">{root.label}</span>
+            </button>
+            {(isExpanded || (normalizedFilter && childMatches)) && (
+              <div className="pl-4 ml-2 border-l border-border-dark">
+                {childMatches && (
+                  <div className="flex items-center gap-2 py-1.5 px-2 text-text-muted">
+                    <span className="w-4" />
+                    <span className="text-blue-400">📄</span>
+                    <span className="flex-1 truncate">{root.child}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-dark border border-border-dark">
+                      {root.type}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* Collapsed folder */}
-      <div className="group">
-        <div className="flex items-center gap-2 py-1.5 px-2 hover:bg-white/5 rounded cursor-pointer text-text-muted hover:text-white">
-          <ChevronRight size={16} className="text-text-muted" />
-          <span className="text-text-muted">📁</span>
-          <span className="truncate">System_Contracts</span>
-        </div>
-      </div>
-
-      {/* Another collapsed folder */}
-      <div className="group">
-        <div className="flex items-center gap-2 py-1.5 px-2 hover:bg-white/5 rounded cursor-pointer text-text-muted hover:text-white">
-          <ChevronRight size={16} className="text-text-muted" />
-          <span className="text-text-muted">📁</span>
-          <span className="truncate">WASM_Cache</span>
-        </div>
-      </div>
+        )
+      })}
+      {visibleRoots.length === 0 && (
+        <p className="px-2 py-1.5 text-xs text-text-muted">
+          No matching ledger entries
+        </p>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { makeLedgerEntryKey } from '../storage/makeLedgerEntryKey'
+import type { LedgerKeyInfo } from './decodeLedgerEntry'
 import type { LedgerEntry as RpcLedgerEntry } from './getLedgerEntries'
 import type { LedgerEntry as StoreLedgerEntry } from '../../store/types'
 
@@ -7,27 +8,7 @@ interface MapLedgerEntriesParams {
   entries: Array<RpcLedgerEntry>
   decodedValuesByKey?: Record<string, unknown>
   decodeErrorReasonsByKey?: Record<string, string>
-}
-
-function inferLedgerEntryType(key: string): StoreLedgerEntry['type'] {
-  const normalized = key.trim().toLowerCase()
-  const tokens = normalized.split('::').map((segment) => segment.trim())
-  const haystack = tokens.join('::')
-
-  if (haystack.includes('contractcode') || haystack.includes('contract_code')) {
-    return 'ContractCode'
-  }
-  if (haystack.includes('contractdata') || haystack.includes('contract_data')) {
-    return 'ContractData'
-  }
-  if (haystack.includes('account')) {
-    return 'Account'
-  }
-  if (haystack.includes('trustline')) {
-    return 'Trustline'
-  }
-
-  return 'Other'
+  keyInfoByKey?: Record<string, LedgerKeyInfo>
 }
 
 /**
@@ -41,18 +22,21 @@ export function mapLedgerEntriesToStoreEntries(
     entries,
     decodedValuesByKey = {},
     decodeErrorReasonsByKey = {},
+    keyInfoByKey = {},
   } = params
 
   return entries
     .filter((entry) => typeof entry.key === 'string' && entry.key.trim() !== '')
     .map((entry) => {
-      const type = inferLedgerEntryType(entry.key)
+      const keyInfo = keyInfoByKey[entry.key] ?? { type: 'Other' as const }
+      const type = keyInfo.type
       const decodeErrorReason = decodeErrorReasonsByKey[entry.key]
 
       return {
         key: makeLedgerEntryKey(contractId, type, entry.key),
         contractId,
         type,
+        ...(keyInfo.displayName ? { displayName: keyInfo.displayName } : {}),
         value:
           decodedValuesByKey[entry.key] !== undefined
             ? decodedValuesByKey[entry.key]
