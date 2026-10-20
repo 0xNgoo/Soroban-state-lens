@@ -1,3 +1,5 @@
+import { xdr } from '@stellar/stellar-sdk'
+import { normalizeContractIdInput } from '../validation/normalizeContractIdInput'
 import { makeLedgerEntryKey } from '../storage/makeLedgerEntryKey'
 import type { LedgerKeyInfo } from './decodeLedgerEntry'
 import type { LedgerEntry as RpcLedgerEntry } from './getLedgerEntries'
@@ -6,9 +8,31 @@ import type { LedgerEntry as StoreLedgerEntry } from '../../store/types'
 interface MapLedgerEntriesParams {
   contractId: string
   entries: Array<RpcLedgerEntry>
+  latestLedger?: number
   decodedValuesByKey?: Record<string, unknown>
   decodeErrorReasonsByKey?: Record<string, string>
   keyInfoByKey?: Record<string, LedgerKeyInfo>
+}
+
+function decodeDurability(key: string): StoreLedgerEntry['durability'] {
+  try {
+    const ledgerKey = xdr.LedgerKey.fromXDR(key, 'base64')
+    if (ledgerKey.switch().name !== 'contractData') {
+      return undefined
+    }
+
+    const durability = ledgerKey.contractData().durability().name
+    if (durability === 'persistent') {
+      return 'Persistent'
+    }
+    if (durability === 'temporary') {
+      return 'Temporary'
+    }
+  } catch {
+    return undefined
+  }
+
+  return undefined
 }
 
 /**
@@ -18,33 +42,56 @@ export function mapLedgerEntriesToStoreEntries(
   params: MapLedgerEntriesParams,
 ): Array<StoreLedgerEntry> {
   const {
-    contractId,
     entries,
+    latestLedger,
     decodedValuesByKey = {},
     decodeErrorReasonsByKey = {},
     keyInfoByKey = {},
   } = params
+  const contractId = normalizeContractIdInput(params.contractId)
+  return entries.map((entry) => {
+    const type = inferLedgerEntryType(entry.key)
+    const durability = decodeDurability(entry.key)
+    const last = entry.lastModifiedLedgerSeq
+    const live = entry.liveUntilLedgerSeq
 
-  return entries
-    .filter((entry) => typeof entry.key === 'string' && entry.key.trim() !== '')
-    .map((entry) => {
-      const keyInfo = keyInfoByKey[entry.key] ?? { type: 'Other' as const }
-      const type = keyInfo.type
-      const decodeErrorReason = decodeErrorReasonsByKey[entry.key]
+    const lastModifiedLedger =
+      typeof last === 'number' &&
+      Number.isFinite(last) &&
+      last >= 0 &&
+      Number.isInteger(last)
+        ? last
+        : 0
 
-      return {
-        key: makeLedgerEntryKey(contractId, type, entry.key),
-        contractId,
-        type,
-        ...(keyInfo.displayName ? { displayName: keyInfo.displayName } : {}),
-        value:
-          decodedValuesByKey[entry.key] !== undefined
-            ? decodedValuesByKey[entry.key]
-            : entry.xdr,
-        lastModifiedLedger: entry.lastModifiedLedgerSeq ?? 0,
-        expirationLedger: entry.liveUntilLedgerSeq,
-        rawXdr: entry.xdr,
-        ...(decodeErrorReason ? { decodeErrorReason } : {}),
-      }
-    })
+    const expirationLedger =
+      typeof live === 'number' &&
+      Number.isFinite(live) &&
+      live >= 0 &&
+      Number.isInteger(live)
+        ? live
+        : undefined
+
+    return {
+      key: makeLedgerEntryKey(contractId, type, entry.key),
+      contractId,
+      type,
+      ...(durability ? { durability } : {}),
+      value:
+        decodedValuesByKey[entry.key] !== undefined
+          ? decodedValuesByKey[entry.key]
+          : entry.xdr,
+      lastModifiedLedger,
+      expirationLedger,
+      ...(durability === 'Temporary' &&
+      expirationLedger !== undefined &&
+      latestLedger !== undefined &&
+      latestLedger > expirationLedger
+        ? { expired: true }
+        : {}),
+      rawXdr: entry.xdr,
+      ...(decodeErrorReasonsByKey[entry.key]
+        ? { decodeErrorReason: decodeErrorReasonsByKey[entry.key] }
+        : {}),
+    }
+  })
 }

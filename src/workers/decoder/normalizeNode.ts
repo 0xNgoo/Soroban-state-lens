@@ -60,6 +60,8 @@ export interface ScVal {
 export interface NormalizeOptions {
   /** When set, nodes at this depth or deeper are replaced with a truncated marker. */
   maxDepth?: number
+  /** When set, vec/map children beyond this count are replaced with a truncated marker. */
+  maxChildren?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +135,10 @@ function stringLikeToString(value: unknown): string {
   if (value === null || value === undefined) {
     return ''
   }
-  if (typeof value === 'object' && typeof (value as any).toString === 'function') {
+  if (
+    typeof value === 'object' &&
+    typeof (value as any).toString === 'function'
+  ) {
     try {
       const str = (value as any).toString()
       if (typeof str === 'string') {
@@ -246,7 +251,14 @@ function parts256ToString(value: unknown, signed: boolean): string | null {
     if (hiHi < minI64 || hiHi > maxI64) {
       return null
     }
-    if (hiLo < 0n || hiLo > maxU64 || loHi < 0n || loHi > maxU64 || loLo < 0n || loLo > maxU64) {
+    if (
+      hiLo < 0n ||
+      hiLo > maxU64 ||
+      loHi < 0n ||
+      loHi > maxU64 ||
+      loLo < 0n ||
+      loLo > maxU64
+    ) {
       return null
     }
 
@@ -294,13 +306,27 @@ function createUnsupportedNode(
   path: Path,
   variant: string,
   scVal: ScVal | null | undefined,
+  sourceType?: string,
 ): UnsupportedNode {
   return {
     kind: 'unsupported',
     path,
     variant,
+    sourceType: sourceType ?? variant,
     raw: toRaw(scVal),
   }
+}
+
+function normalizeMaxChildren(value: unknown): number | undefined {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    return undefined
+  }
+  return value
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +335,7 @@ function createUnsupportedNode(
 
 /** Sensible default for maximum recursion depth in node normalization. */
 export const MAX_DEPTH_DEFAULT = 32
+export const MAX_CHILDREN_DEFAULT = 1024
 
 /**
  * Normalizes an ScVal to a fully-typed Node with path and raw metadata.
@@ -328,7 +355,13 @@ export function normalizeNode(
   depth?: number,
 ): Node {
   const currentDepth = depth ?? 0
-  const maxDepth = options?.maxDepth ?? MAX_DEPTH_DEFAULT
+  const maxDepth =
+    typeof options?.maxDepth === 'number' &&
+    Number.isFinite(options.maxDepth) &&
+    options.maxDepth >= 0 &&
+    Number.isInteger(options.maxDepth)
+      ? options.maxDepth
+      : MAX_DEPTH_DEFAULT
 
   if (currentDepth >= maxDepth) {
     return createTruncatedNode(path, currentDepth)
@@ -363,9 +396,10 @@ export function normalizeNode(
         kind: 'primitive',
         path,
         scType: 'bool',
-        value: typeof normalizedScVal.value === 'boolean'
-          ? normalizedScVal.value
-          : false,
+        value:
+          typeof normalizedScVal.value === 'boolean'
+            ? normalizedScVal.value
+            : false,
         raw: toRaw(scVal),
       } satisfies PrimitiveNode
     }
@@ -552,6 +586,23 @@ export function normalizeNode(
       } satisfies PrimitiveNode
     }
 
+    case ScValType.SCV_BYTES: {
+      if (
+        ArrayBuffer.isView(normalizedScVal.value) &&
+        Object.prototype.toString.call(normalizedScVal.value) ===
+          '[object Uint8Array]'
+      ) {
+        return {
+          kind: 'primitive',
+          path,
+          scType: 'bytes',
+          value: Array.from(normalizedScVal.value as Uint8Array),
+          raw: toRaw(scVal),
+        } satisfies PrimitiveNode
+      }
+      return createUnsupportedNode(path, ScValType.SCV_BYTES, scVal)
+    }
+
     case ScValType.SCV_SYMBOL: {
       return {
         kind: 'primitive',
@@ -609,11 +660,16 @@ export function normalizeNode(
         } satisfies VecNode
       }
 
-      // Pre-allocate array with known size for better performance
-      const items: Array<Node> = new Array(normalizedScVal.value.length)
+      const maxChildren =
+        normalizeMaxChildren(options?.maxChildren) ?? MAX_CHILDREN_DEFAULT
+      const childCount = Math.min(normalizedScVal.value.length, maxChildren)
+      const isTruncated = childCount < normalizedScVal.value.length
 
-      // Use for loop with better error handling for large arrays
-      for (let i = 0; i < normalizedScVal.value.length; i++) {
+      // The configured limit bounds decoded values; a marker reports omitted values.
+      const items: Array<Node> = new Array(childCount + (isTruncated ? 1 : 0))
+
+      // Use a bounded loop with per-item error handling.
+      for (let i = 0; i < childCount; i++) {
         try {
           const childPath = appendPath(path, { type: 'index', index: i })
           items[i] = normalizeNode(
@@ -633,18 +689,39 @@ export function normalizeNode(
         }
       }
 
+      if (isTruncated) {
+        items[childCount] = createTruncatedNode(
+          appendPath(path, { type: 'index', index: childCount }),
+          currentDepth + 1,
+        )
+      }
+
       return {
         kind: 'vec',
         path,
         items,
+        ...(isTruncated
+          ? {
+              childLimit: maxChildren,
+              omittedChildren: normalizedScVal.value.length - childCount,
+            }
+          : {}),
         raw: toRaw(scVal),
       } satisfies VecNode
     }
 
     case ScValType.SCV_MAP: {
       const entries: Array<{ key: Node; value: Node }> = []
+      const maxChildren =
+        normalizeMaxChildren(options?.maxChildren) ?? MAX_CHILDREN_DEFAULT
+      const sourceLength = Array.isArray(normalizedScVal.value)
+        ? normalizedScVal.value.length
+        : 0
+      const childCount = Math.min(sourceLength, maxChildren)
+      const isTruncated = childCount < sourceLength
       if (Array.isArray(normalizedScVal.value)) {
-        for (const entry of normalizedScVal.value) {
+        for (let index = 0; index < childCount; index += 1) {
+          const entry = normalizedScVal.value[index]
           // js-xdr exposes struct fields via accessor methods (e.g.
           // `entry.key()`), while plain test fixtures use `entry.key`.
           // Read both shapes so map decoding works for XDR-originated
@@ -670,11 +747,22 @@ export function normalizeNode(
           )
           entries.push({ key: keyNode, value: valueNode })
         }
+
+        if (isTruncated) {
+          const truncation = createTruncatedNode(path, currentDepth + 1)
+          entries.push({ key: truncation, value: truncation })
+        }
       }
       return {
         kind: 'map',
         path,
         entries,
+        ...(isTruncated
+          ? {
+              childLimit: maxChildren,
+              omittedChildren: sourceLength - childCount,
+            }
+          : {}),
         raw: toRaw(scVal),
       } satisfies MapNode
     }

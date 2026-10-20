@@ -2,6 +2,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Download,
   Filter,
   GitCompare,
   History as HistoryIcon,
@@ -10,8 +11,12 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLensStore } from '../../store/lensStore'
+import { downloadSnapshotDiff } from '../../lib/diff/exportSnapshotDiff'
 import { resolveDiffStatus } from '../../lib/diff/resolveDiffStatus'
+import { formatContractIdShort } from '../../lib/format/formatContractIdShort'
+import { formatLedgerSequence } from '../../lib/format/formatLedgerSequence'
+import { useLensStore, useSnapshots } from '../../store/lensStore'
+import type { LedgerEntry } from '../../store/types'
 
 interface SidebarProps {
   open: boolean
@@ -20,7 +25,37 @@ interface SidebarProps {
   activeNavItem?: string
 }
 
-const EMPTY_ARRAY: Array<any> = []
+const EMPTY_LEDGER_ENTRIES: Array<LedgerEntry> = []
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return (
+    target.isContentEditable ||
+    target.closest('[contenteditable="true"], [role="textbox"]') !== null ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+  )
+}
+
+function captureActiveSnapshot(): void {
+  const state = useLensStore.getState()
+  const contractId = state.activeContractId
+  if (!contractId) return
+
+  const entries = Object.values(state.ledgerData)
+    .filter((entry) => entry.contractId === contractId)
+    .sort((left, right) => left.key.localeCompare(right.key))
+  if (entries.length === 0) return
+
+  const ledgerData = Object.fromEntries(
+    entries.map((entry) => [entry.key, entry]),
+  )
+  state.addSnapshot(
+    contractId,
+    ledgerData,
+    state.currentLedgerSequence,
+    `Snapshot #${state.getSnapshots(contractId).length + 1}`,
+  )
+}
 
 export default function Sidebar({
   open,
@@ -30,6 +65,32 @@ export default function Sidebar({
 }: SidebarProps) {
   const isPinned = variant === 'pinned'
   const isHistory = activeNavItem === 'history'
+  const activeContractId = useLensStore((state) => state.activeContractId)
+  const activeContractLabel = activeContractId
+    ? formatContractIdShort(activeContractId)
+    : null
+
+  useEffect(() => {
+    if (isPinned) return
+
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== 's' ||
+        !event.shiftKey ||
+        (!event.ctrlKey && !event.metaKey) ||
+        event.altKey ||
+        isEditableTarget(event.target)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      captureActiveSnapshot()
+    }
+
+    document.addEventListener('keydown', handleShortcut)
+    return () => document.removeEventListener('keydown', handleShortcut)
+  }, [isPinned])
 
   // Pinned variant: inline panel
   if (isPinned) {
@@ -40,7 +101,45 @@ export default function Sidebar({
         } overflow-hidden shrink-0`}
         aria-label="Ledger State Explorer"
       >
-        {isHistory ? <HistorySidebarPanel /> : <LedgerStateSidebarPanel />}
+        <div className="w-100 flex flex-col h-full">
+          {/* Panel Header */}
+          <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
+            <div className="min-w-0 flex flex-col">
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
+                {isHistory ? 'Compare History' : 'Ledger State'}
+              </span>
+              {!isHistory && activeContractLabel ? (
+                <span
+                  className="text-[11px] font-mono text-white truncate max-w-[14rem]"
+                  title={activeContractId ?? undefined}
+                >
+                  {activeContractLabel}
+                </span>
+              ) : null}
+            </div>
+            {!isHistory && (
+              <div className="flex gap-2">
+                <button
+                  className="text-text-muted hover:text-white"
+                  aria-label="Collapse all"
+                >
+                  <ChevronUp size={18} />
+                </button>
+                <button
+                  className="text-text-muted hover:text-white"
+                  aria-label="Filter"
+                >
+                  <Filter size={18} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Panel Body */}
+          <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
+            {isHistory ? <HistoryPanel /> : <TreePlaceholder />}
+          </div>
+        </div>
       </aside>
     )
   }
@@ -142,68 +241,30 @@ export default function Sidebar({
         }`}
         aria-label="Ledger State Explorer"
       >
-        {isHistory ? (
-          <HistorySidebarPanel onClose={onClose} />
-        ) : (
-          <LedgerStateSidebarPanel onClose={onClose} />
-        )}
-      </aside>
-    </>
-  )
-}
-
-function HistorySidebarPanel({ onClose }: { onClose?: () => void }) {
-  return (
-    <div className="w-100 flex flex-col h-full">
-      <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
-        <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
-          Compare History
-        </span>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-white"
-            aria-label="Close menu"
-          >
-            <X size={18} />
-          </button>
-        )}
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-        <HistoryPanel />
-      </div>
-    </div>
-  )
-}
-
-function LedgerStateSidebarPanel({ onClose }: { onClose?: () => void }) {
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [filterText, setFilterText] = useState('')
-  const collapseAll = useLensStore((state) => state.collapseAll)
-
-  return (
-    <div className="w-100 flex flex-col h-full">
-      <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
-        <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
-          Ledger State
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={collapseAll}
-            className="text-text-muted hover:text-white"
-            aria-label="Collapse all"
-          >
-            <ChevronUp size={18} />
-          </button>
-          <button
-            onClick={() => setFilterOpen((open) => !open)}
-            className="text-text-muted hover:text-white"
-            aria-label="Filter"
-            aria-expanded={filterOpen}
-          >
-            <Filter size={18} />
-          </button>
-          {onClose && (
+        {/* Panel Header */}
+        <div className="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-surface-dark/50 shrink-0">
+          <div className="min-w-0 flex flex-col">
+            <span className="text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
+              {isHistory ? 'Compare History' : 'Ledger State'}
+            </span>
+            {!isHistory && activeContractLabel ? (
+              <span
+                className="text-[11px] font-mono text-white truncate max-w-[14rem]"
+                title={activeContractId ?? undefined}
+              >
+                {activeContractLabel}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            {!isHistory && (
+              <button
+                className="text-text-muted hover:text-white"
+                aria-label="Filter"
+              >
+                <Filter size={18} />
+              </button>
+            )}
             <button
               onClick={onClose}
               className="text-text-muted hover:text-white"
@@ -236,20 +297,22 @@ function LedgerStateSidebarPanel({ onClose }: { onClose?: () => void }) {
  */
 function HistoryPanel() {
   const activeContractId = useLensStore((state) => state.activeContractId)
-  const allSnapshots = useLensStore((state) => state.snapshots)
-
-  const snapshots = useMemo(() => {
-    if (!activeContractId) return EMPTY_ARRAY
-    return allSnapshots[activeContractId] ?? EMPTY_ARRAY
-  }, [allSnapshots, activeContractId])
+  const snapshots = useSnapshots(activeContractId ?? '')
 
   const addSnapshot = useLensStore((state) => state.addSnapshot)
   const removeSnapshot = useLensStore((state) => state.removeSnapshot)
   const clearSnapshots = useLensStore((state) => state.clearSnapshots)
+  const [previousSnapshotId, setPreviousSnapshotId] = useState<string | null>(
+    null,
+  )
+  const [nextSnapshotId, setNextSnapshotId] = useState<string | null>(null)
 
   const ledgerData = useLensStore((state) => state.ledgerData)
+  const currentLedgerSequence = useLensStore(
+    (state) => state.currentLedgerSequence,
+  )
   const ledgerEntries = useMemo(() => {
-    if (!activeContractId) return EMPTY_ARRAY
+    if (!activeContractId) return EMPTY_LEDGER_ENTRIES
     const entries = Object.values(ledgerData).filter(
       (entry) => entry.contractId === activeContractId,
     )
@@ -263,26 +326,67 @@ function HistoryPanel() {
       entriesDict[entry.key] = entry
     })
     const label = `Snapshot #${snapshots.length + 1}`
-    addSnapshot(activeContractId, entriesDict, label)
+    addSnapshot(activeContractId, entriesDict, currentLedgerSequence, label)
   }
 
-  // Formatting helper for timestamps
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
+  const handleClearSnapshots = () => {
+    if (!activeContractId) return
+
+    if (
+      !window.confirm(
+        `Clear all snapshots for ${activeContractId}? This action cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    clearSnapshots(activeContractId)
   }
 
   const hasInsufficient = snapshots.length < 2
+  const latestPreviousSnapshot = snapshots.at(-2)
+  const latestNextSnapshot = snapshots.at(-1)
+  const requestedPreviousSnapshot = snapshots.find(
+    (snapshot) => snapshot.id === previousSnapshotId,
+  )
+  const requestedNextSnapshot = snapshots.find(
+    (snapshot) => snapshot.id === nextSnapshotId,
+  )
+  const previousSnapshot = requestedPreviousSnapshot ?? latestPreviousSnapshot
+  const nextSnapshot = requestedNextSnapshot ?? latestNextSnapshot
+  const selectedSnapshotsMatch = previousSnapshot?.id === nextSnapshot?.id
+  const comparisonPreviousSnapshot = selectedSnapshotsMatch
+    ? latestPreviousSnapshot
+    : previousSnapshot
+  const comparisonNextSnapshot = selectedSnapshotsMatch
+    ? latestNextSnapshot
+    : nextSnapshot
 
-  // Compute diff summary if 2 or more snapshots exist
+  const handleDownloadDiff = () => {
+    if (comparisonPreviousSnapshot && comparisonNextSnapshot) {
+      downloadSnapshotDiff(comparisonPreviousSnapshot, comparisonNextSnapshot)
+    }
+  }
+
+  const handleRemoveSnapshot = (snapshotId: string, label: string) => {
+    if (!activeContractId) return
+    if (
+      !window.confirm(
+        `Delete ${label} for ${activeContractId}? This action cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    removeSnapshot(activeContractId, snapshotId)
+  }
+
+  // Compute the selected diff summary if 2 or more snapshots exist
   const diffSummary = useMemo(() => {
-    if (snapshots.length < 2) return null
+    if (!comparisonPreviousSnapshot || !comparisonNextSnapshot) return null
 
-    const prev = snapshots[snapshots.length - 2]
-    const next = snapshots[snapshots.length - 1]
+    const prev = comparisonPreviousSnapshot
+    const next = comparisonNextSnapshot
 
     const prevKeys = Object.keys(prev.ledgerData)
     const nextKeys = Object.keys(next.ledgerData)
@@ -294,14 +398,16 @@ function HistoryPanel() {
     let unchanged = 0
 
     for (const key of allKeys) {
+      const hasEntryA = Object.hasOwn(prev.ledgerData, key)
+      const hasEntryB = Object.hasOwn(next.ledgerData, key)
       const entryA = prev.ledgerData[key]
       const entryB = next.ledgerData[key]
 
-      if (entryA === undefined && entryB !== undefined) {
+      if (!hasEntryA && hasEntryB) {
         created++
-      } else if (entryA !== undefined && entryB === undefined) {
+      } else if (hasEntryA && !hasEntryB) {
         deleted++
-      } else if (entryA !== undefined && entryB !== undefined) {
+      } else if (hasEntryA && hasEntryB) {
         const status = resolveDiffStatus(entryA.value, entryB.value)
         if (status === 'changed') {
           modified++
@@ -312,15 +418,15 @@ function HistoryPanel() {
     }
 
     return {
-      prevLabel: prev.label || `Snapshot #${snapshots.length - 1}`,
-      nextLabel: next.label || `Snapshot #${snapshots.length}`,
+      prevLabel: prev.label || `Snapshot #${snapshots.indexOf(prev) + 1}`,
+      nextLabel: next.label || `Snapshot #${snapshots.indexOf(next) + 1}`,
       created,
       deleted,
       modified,
       unchanged,
       total: allKeys.length,
     }
-  }, [snapshots])
+  }, [comparisonNextSnapshot, comparisonPreviousSnapshot, snapshots])
 
   if (!activeContractId) {
     return (
@@ -366,6 +472,8 @@ function HistoryPanel() {
 
           <button
             onClick={handleCapture}
+            aria-keyshortcuts="Control+Shift+S Meta+Shift+S"
+            title="Keyboard shortcut: Ctrl+Shift+S or Command+Shift+S"
             disabled={ledgerEntries.length === 0}
             className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               ledgerEntries.length === 0
@@ -376,6 +484,9 @@ function HistoryPanel() {
             <PlusCircle size={14} />
             Capture Snapshot
           </button>
+          <p className="text-[10px] text-text-muted text-center">
+            Shortcut: Ctrl/⌘ + Shift + S
+          </p>
 
           {ledgerEntries.length === 0 && (
             <p className="text-[10px] text-amber-500/80 text-center leading-relaxed">
@@ -414,6 +525,49 @@ function HistoryPanel() {
               >
                 {diffSummary?.nextLabel}
               </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <label className="flex flex-col gap-1 text-text-muted">
+                From snapshot
+                <select
+                  aria-label="Compare from snapshot"
+                  value={comparisonPreviousSnapshot?.id ?? ''}
+                  onChange={(event) =>
+                    setPreviousSnapshotId(event.target.value)
+                  }
+                  className="min-w-0 rounded border border-border-dark bg-background-dark px-2 py-1.5 text-white"
+                >
+                  {snapshots.map((snapshot, index) => (
+                    <option
+                      key={snapshot.id}
+                      value={snapshot.id}
+                      disabled={snapshot.id === comparisonNextSnapshot?.id}
+                    >
+                      {snapshot.label || `Snapshot #${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-text-muted">
+                To snapshot
+                <select
+                  aria-label="Compare to snapshot"
+                  value={comparisonNextSnapshot?.id ?? ''}
+                  onChange={(event) => setNextSnapshotId(event.target.value)}
+                  className="min-w-0 rounded border border-border-dark bg-background-dark px-2 py-1.5 text-white"
+                >
+                  {snapshots.map((snapshot, index) => (
+                    <option
+                      key={snapshot.id}
+                      value={snapshot.id}
+                      disabled={snapshot.id === comparisonPreviousSnapshot?.id}
+                    >
+                      {snapshot.label || `Snapshot #${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             {/* Counts Grid */}
@@ -455,6 +609,8 @@ function HistoryPanel() {
             <div className="pt-2 flex gap-2">
               <button
                 onClick={handleCapture}
+                aria-keyshortcuts="Control+Shift+S Meta+Shift+S"
+                title="Keyboard shortcut: Ctrl+Shift+S or Command+Shift+S"
                 disabled={ledgerEntries.length === 0}
                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   ledgerEntries.length === 0
@@ -466,7 +622,17 @@ function HistoryPanel() {
                 Capture
               </button>
               <button
-                onClick={() => clearSnapshots(activeContractId)}
+                onClick={handleDownloadDiff}
+                aria-label="Download snapshot diff as JSON"
+                className="py-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Download snapshot diff as JSON"
+              >
+                <Download size={12} />
+                Export
+              </button>
+              <button
+                onClick={handleClearSnapshots}
+                aria-label={`Clear all snapshots for ${activeContractId}`}
                 className="py-2 px-3 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Clear all snapshot history"
               >
@@ -499,13 +665,19 @@ function HistoryPanel() {
                     {snap.label || `Snapshot #${idx + 1}`}
                   </span>
                   <span className="text-[9px] text-text-muted flex gap-1.5 font-mono">
-                    <span>{formatTime(snap.timestamp)}</span>
+                    <span>L {formatLedgerSequence(snap.ledgerSequence)}</span>
                     <span>•</span>
                     <span>{Object.keys(snap.ledgerData).length} keys</span>
                   </span>
                 </div>
                 <button
-                  onClick={() => removeSnapshot(activeContractId, snap.id)}
+                  onClick={() =>
+                    handleRemoveSnapshot(
+                      snap.id,
+                      snap.label || `Snapshot #${idx + 1}`,
+                    )
+                  }
+                  aria-label={`Delete snapshot ${snap.label || `Snapshot #${idx + 1}`} for ${activeContractId}`}
                   className="text-text-muted hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/10 transition-all cursor-pointer shrink-0"
                   title="Delete snapshot"
                 >

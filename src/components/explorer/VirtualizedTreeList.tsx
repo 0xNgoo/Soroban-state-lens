@@ -41,8 +41,24 @@ export function VirtualizedTreeList({
   const totalHeight = rows.length * rowHeight
   const viewportCount = Math.max(1, Math.ceil(height / rowHeight))
   const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan)
-  const endIndex = Math.min(rows.length, startIndex + viewportCount + overscan * 2)
+  const endIndex = Math.min(
+    rows.length,
+    startIndex + viewportCount + overscan * 2,
+  )
   const visibleRows = rows.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    const maxScrollTop = Math.max(0, totalHeight - height)
+
+    if (scrollTop > maxScrollTop) {
+      const clampedScrollTop = Math.max(0, maxScrollTop)
+      setScrollTop(clampedScrollTop)
+
+      if (containerRef.current) {
+        containerRef.current.scrollTop = clampedScrollTop
+      }
+    }
+  }, [height, scrollTop, totalHeight])
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     setScrollTop(event.currentTarget.scrollTop)
@@ -121,6 +137,8 @@ export function VirtualizedTreeList({
   return (
     <div
       ref={containerRef}
+      role="tree"
+      aria-label="Contract state"
       className="overflow-auto rounded border border-border-dark bg-surface-dark/30"
       style={{ height }}
       onScroll={handleScroll}

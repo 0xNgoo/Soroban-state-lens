@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Sidebar from '../../components/global/Sidebar'
 import { resetStore, useLensStore } from '../../store/lensStore'
+import { formatContractIdShort } from '../../lib/format/formatContractIdShort'
 import type { LedgerEntry } from '../../store/types'
 
 const makeEntry = (
@@ -29,36 +30,22 @@ describe('Sidebar History Panel', () => {
     expect(screen.queryByText('Capture First')).toBeNull()
   })
 
-  it('filters sidebar rows and collapses expanded rows through explorer state', () => {
-    render(
-      <Sidebar
-        open={true}
-        onClose={vi.fn()}
-        variant="pinned"
-        activeNavItem="watchlist"
-      />,
-    )
+  it('shows a shortened active contract label in the sidebar header', () => {
+    const activeContractId =
+      'CDLZFC3SYQJ4S7HBE6A5PTLQO7N4M3YX2WT4EFQ4PTJX3S7PZN6MTEST'
+    useLensStore.getState().setActiveContractId(activeContractId)
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Toggle Contract_Registry' }),
-    )
-    expect(useLensStore.getState().expandedNodes).toContain(
-      'sidebar:contract-registry',
-    )
+    render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="watchlist" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
-    expect(useLensStore.getState().expandedNodes).toEqual([])
+    const label = screen.getByText(formatContractIdShort(activeContractId))
+    expect(label).toBeTruthy()
+    expect(label.getAttribute('title')).toBe(activeContractId)
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.change(
-      screen.getByRole('searchbox', { name: 'Filter ledger entries' }),
-      {
-        target: { value: 'wasm' },
-      },
-    )
+  it('hides the active contract label when no contract is active', () => {
+    render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="watchlist" />)
 
-    expect(screen.getByText('WASM_Cache')).toBeTruthy()
-    expect(screen.queryByText('System_Contracts')).toBeNull()
+    expect(screen.queryByText('-')).toBeNull()
   })
 
   it('renders no active contract message when activeNavItem is history but activeContractId is null', () => {
@@ -111,6 +98,28 @@ describe('Sidebar History Panel', () => {
     expect(screen.getByText('Diff Summary')).toBeTruthy()
   })
 
+  it('captures with Ctrl or Command+Shift+S but ignores editable controls', () => {
+    const state = useLensStore.getState()
+    state.setActiveContractId('c1')
+    state.upsertLedgerEntries([makeEntry('key1', 'c1', 'value')])
+    render(
+      <>
+        <input aria-label="Editable field" />
+        <Sidebar open={false} onClose={vi.fn()} activeNavItem="watchlist" />
+      </>,
+    )
+
+    fireEvent.keyDown(screen.getByLabelText('Editable field'), {
+      key: 's',
+      ctrlKey: true,
+      shiftKey: true,
+    })
+    expect(useLensStore.getState().getSnapshots('c1')).toHaveLength(0)
+
+    fireEvent.keyDown(document, { key: 's', metaKey: true, shiftKey: true })
+    expect(useLensStore.getState().getSnapshots('c1')).toHaveLength(1)
+  })
+
   it('displays counts for created, deleted, modified, and unchanged entries', () => {
     const state = useLensStore.getState()
     state.setActiveContractId('c1')
@@ -130,8 +139,8 @@ describe('Sidebar History Panel', () => {
     }
 
     // Programmatically add snapshots
-    state.addSnapshot('c1', snap1, 'Snapshot #1')
-    state.addSnapshot('c1', snap2, 'Snapshot #2')
+    state.addSnapshot('c1', snap1, 12345, 'Snapshot #1')
+    state.addSnapshot('c1', snap2, 12346, 'Snapshot #2')
 
     render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="history" />)
 
@@ -155,5 +164,39 @@ describe('Sidebar History Panel', () => {
     // Unchanged should be 1
     expect(screen.getByText('1')).toBeTruthy()
     expect(screen.getByText('Unchanged')).toBeTruthy()
+  })
+
+  it('updates the diff summary when an older snapshot pair is selected', () => {
+    const state = useLensStore.getState()
+    state.setActiveContractId('c1')
+    state.addSnapshot('c1', { key: makeEntry('key', 'c1', 'same') }, 1, 'Older')
+    state.addSnapshot('c1', { key: makeEntry('key', 'c1', 'same') }, 2, 'Middle')
+    state.addSnapshot(
+      'c1',
+      { key: makeEntry('key', 'c1', 'changed') },
+      3,
+      'Latest',
+    )
+
+    render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="history" />)
+
+    expect(screen.getByText('~1')).toBeTruthy()
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Compare from snapshot' }),
+      {
+        target: { value: useLensStore.getState().getSnapshots('c1')[0]?.id },
+      },
+    )
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Compare to snapshot' }),
+      {
+        target: { value: useLensStore.getState().getSnapshots('c1')[1]?.id },
+      },
+    )
+
+    expect(screen.getAllByText('Older').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Middle').length).toBeGreaterThan(0)
+    expect(screen.getByText('~0')).toBeTruthy()
+    expect(screen.getByText('1')).toBeTruthy()
   })
 })
