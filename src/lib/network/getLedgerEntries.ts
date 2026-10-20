@@ -22,6 +22,8 @@ export interface GetLedgerEntriesResult {
   latestLedger: number
 }
 
+export const MAX_LEDGER_ENTRY_KEYS = 200
+
 export class AbortError extends Error {
   constructor(message = 'Request was aborted') {
     super(message)
@@ -46,12 +48,23 @@ export async function getLedgerEntries(
   if (signal?.aborted) {
     throw new AbortError()
   }
+  const uniqueKeys = [...new Set(keys)]
+  if (uniqueKeys.length > MAX_LEDGER_ENTRY_KEYS) {
+    throw new Error(
+      `Too many ledger entry keys: maximum is ${MAX_LEDGER_ENTRY_KEYS}`,
+    )
+  }
+
   const normalized = normalizeRpcUrl(rpcUrl)
   if (normalized === '') {
     throw new Error('Invalid RPC URL')
   }
   const requestId = toRpcRequestId()
-  const payload = buildJsonRpcRequest('getLedgerEntries', [keys], requestId)
+  const payload = buildJsonRpcRequest(
+    'getLedgerEntries',
+    { keys: uniqueKeys },
+    requestId,
+  )
 
   try {
     const response = await fetch(normalized, {

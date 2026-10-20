@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button, Card, Heading } from '@stellar/design-system'
+import { useShallow } from 'zustand/react/shallow'
 import { VirtualizedTreeList } from '../../../components/explorer/VirtualizedTreeList'
 import { selectLedgerEntriesByContractId } from '../../../lib/selectors/selectLedgerEntriesByContractId'
 import { flattenTree } from '../../../lib/tree/flattenTree'
@@ -45,7 +46,9 @@ function ContractExplorer() {
   const setContractLoadStatus = useLensStore(
     (state) => state.setContractLoadStatus,
   )
-  const setContractLoadError = useLensStore((state) => state.setContractLoadError)
+  const setContractLoadError = useLensStore(
+    (state) => state.setContractLoadError,
+  )
   const loadContract = useLensStore((state) => state.loadContract)
   const contractLoadStatus = useLensStore((state) => state.contractLoadStatus)
   const contractLoadError = useLensStore((state) => state.contractLoadError)
@@ -54,8 +57,8 @@ function ContractExplorer() {
   const selectedKeyPath = useLensStore((state) => state.selectedKeyPath)
   const setSelectedKeyPath = useLensStore((state) => state.setSelectedKeyPath)
 
-  const ledgerEntries = useLensStore((state) =>
-    selectLedgerEntriesByContractId(state, contractId),
+  const ledgerEntries = useLensStore(
+    useShallow((state) => selectLedgerEntriesByContractId(state, contractId)),
   )
 
   const keys = useMemo(
@@ -77,7 +80,8 @@ function ContractExplorer() {
         return [
           {
             id: entry.key,
-            label: entry.key,
+            label: entry.displayKey ?? entry.key,
+            canonicalKey: entry.canonicalKey,
             node: entry.value,
           },
         ]

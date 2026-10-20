@@ -24,6 +24,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_1',
         type: 'Other',
         value: { kind: 'primitive', scType: 'string', value: 'hello' },
+        canonicalKey: 'ledger-key-1',
         lastModifiedLedger: 42,
         expirationLedger: 99,
         rawXdr: 'xdr-1',
@@ -43,6 +44,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_2',
         type: 'Other',
         value: 'xdr-2',
+        canonicalKey: 'ledger-key-2',
         lastModifiedLedger: 0,
         expirationLedger: undefined,
         rawXdr: 'xdr-2',
@@ -68,9 +70,24 @@ describe('mapLedgerEntriesToStoreEntries', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_4',
       entries: [
-        { key: 'n', xdr: 'xdr-n', lastModifiedLedgerSeq: -5, liveUntilLedgerSeq: -1 },
-        { key: 'f', xdr: 'xdr-f', lastModifiedLedgerSeq: 3.14, liveUntilLedgerSeq: 200.5 },
-        { key: 'v', xdr: 'xdr-v', lastModifiedLedgerSeq: 10, liveUntilLedgerSeq: 20 },
+        {
+          key: 'n',
+          xdr: 'xdr-n',
+          lastModifiedLedgerSeq: -5,
+          liveUntilLedgerSeq: -1,
+        },
+        {
+          key: 'f',
+          xdr: 'xdr-f',
+          lastModifiedLedgerSeq: 3.14,
+          liveUntilLedgerSeq: 200.5,
+        },
+        {
+          key: 'v',
+          xdr: 'xdr-v',
+          lastModifiedLedgerSeq: 10,
+          liveUntilLedgerSeq: 20,
+        },
       ],
     })
 
@@ -80,6 +97,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_4',
         type: 'Other',
         value: 'xdr-n',
+        canonicalKey: 'n',
         lastModifiedLedger: 0,
         expirationLedger: undefined,
         rawXdr: 'xdr-n',
@@ -89,6 +107,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_4',
         type: 'Other',
         value: 'xdr-f',
+        canonicalKey: 'f',
         lastModifiedLedger: 0,
         expirationLedger: undefined,
         rawXdr: 'xdr-f',
@@ -98,10 +117,35 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_4',
         type: 'Other',
         value: 'xdr-v',
+        canonicalKey: 'v',
         lastModifiedLedger: 10,
         expirationLedger: 20,
         rawXdr: 'xdr-v',
       },
     ])
+  })
+
+  it('preserves the canonical key while exposing a decoded composite-key preview', () => {
+    const result = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_5',
+      entries: [{ key: 'canonical-xdr-key', xdr: 'entry-data-xdr' }],
+      decodedMetadataByKey: {
+        'canonical-xdr-key': {
+          type: 'ContractData',
+          durability: 'Persistent',
+        },
+      },
+      decodedKeyPreviewsByKey: {
+        'canonical-xdr-key': '[owner, balance]',
+      },
+    })
+
+    expect(result[0]).toMatchObject({
+      key: 'CONTRACT_5::ContractData::canonical-xdr-key',
+      type: 'ContractData',
+      durability: 'Persistent',
+      canonicalKey: 'canonical-xdr-key',
+      displayKey: '[owner, balance]',
+    })
   })
 })

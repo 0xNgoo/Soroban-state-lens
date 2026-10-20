@@ -11,11 +11,13 @@ export interface FlatTreeRow {
   kind: FlatTreeRowKind
   hasChildren: boolean
   childCount: number
+  canonicalKey?: string
   node: Node
 }
 
 export interface FlattenTreeRoot {
   id: string
   label: string
+  canonicalKey?: string
   node: Node
 }

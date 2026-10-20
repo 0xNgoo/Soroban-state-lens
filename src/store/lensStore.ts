@@ -2,7 +2,10 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
+import { decodeLedgerEntryMetadata } from '../lib/network/decodeLedgerEntry'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
+import { formatStorageKeyPreview } from '../lib/format/formatStorageKeyPreview'
+import { normalizeContractIdInput } from '../lib/validation/normalizeContractIdInput'
 import { isDecoderWorkerError } from '../types/decoder-worker'
 import { createDecoderWorkerSafe } from '../workers/createDecoderWorkerSafe'
 import {
@@ -298,20 +301,52 @@ const createContractLoadSlice = (
           return
         }
 
+        const decodedMetadataByKey: Partial<
+          Record<string, ReturnType<typeof decodeLedgerEntryMetadata>>
+        > = {}
+        const contractEntries = entries.filter((entry) => {
+          const metadata = decodeLedgerEntryMetadata(entry)
+          decodedMetadataByKey[entry.key] = metadata
+          return (
+            metadata.type !== 'ContractData' ||
+            metadata.contractId === normalizeContractIdInput(contractId)
+          )
+        })
+
         const worker = await createDecoderWorkerSafe()
         const decodedValuesByKey: Record<string, unknown> = {}
+        const decodedKeyPreviewsByKey: Record<string, string> = {}
 
-        for (const entry of entries) {
-          const result = await worker.decodeScVal({ xdr: entry.xdr })
-          decodedValuesByKey[entry.key] = isDecoderWorkerError(result)
-            ? entry.xdr
-            : result
+        for (const entry of contractEntries) {
+          const metadata = decodedMetadataByKey[entry.key]
+          if (metadata?.valueXdr) {
+            const result = await worker.decodeScVal({ xdr: metadata.valueXdr })
+            if (isDecoderWorkerError(result)) {
+              throw new Error(
+                `Failed to decode ledger value for key ${entry.key}: ${result.message}`,
+              )
+            }
+            decodedValuesByKey[entry.key] = result
+          }
+          if (metadata?.storageKeyXdr) {
+            const result = await worker.decodeScVal({
+              xdr: metadata.storageKeyXdr,
+            })
+            if (isDecoderWorkerError(result)) {
+              throw new Error(
+                `Failed to decode storage key ${entry.key}: ${result.message}`,
+              )
+            }
+            decodedKeyPreviewsByKey[entry.key] = formatStorageKeyPreview(result)
+          }
         }
 
         const mappedEntries = mapLedgerEntriesToStoreEntries({
           contractId,
-          entries,
+          entries: contractEntries,
           decodedValuesByKey,
+          decodedMetadataByKey,
+          decodedKeyPreviewsByKey,
         })
 
         set((state) => ({
