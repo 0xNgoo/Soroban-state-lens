@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 
 import { deepClone } from '../lib/deepClone'
+import { extractContractDataValueXdr } from '../lib/network/extractContractDataValueXdr'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
 import { normalizeContractIdInput } from '../lib/validation/normalizeContractIdInput'
@@ -576,7 +577,7 @@ const createContractLoadSlice = (
 
               try {
                 const result = await activeDecoderWorker.decodeScVal({
-                  xdr: entry.xdr,
+                  xdr: extractContractDataValueXdr(entry.xdr),
                 })
                 if (isRequestStale()) {
                   return

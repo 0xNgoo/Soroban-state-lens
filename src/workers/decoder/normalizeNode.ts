@@ -68,13 +68,57 @@ export interface NormalizeOptions {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+function toCloneSafeValue(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') {
+    return typeof value === 'bigint' ? value.toString() : value
+  }
+
+  if (value instanceof Uint8Array) {
+    return Array.from(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(toCloneSafeValue)
+  }
+
+  const xdrValue = value as {
+    switch?: unknown
+    value?: unknown
+    key?: unknown
+    val?: unknown
+  }
+  if (typeof xdrValue.switch === 'function') {
+    return {
+      switch: getScValSwitch(value),
+      value: toCloneSafeValue(getScValValue(value)),
+    }
+  }
+  if (
+    typeof xdrValue.key === 'function' &&
+    typeof xdrValue.val === 'function'
+  ) {
+    return {
+      key: toCloneSafeValue((xdrValue.key as () => unknown)()),
+      val: toCloneSafeValue((xdrValue.val as () => unknown)()),
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [key, toCloneSafeValue(child)]),
+  )
+}
+
 function toRaw(scVal: ScVal | null | undefined): RawScVal {
   if (!scVal) {
     return { switch: '' }
   }
+  const switchName =
+    typeof scVal.switch === 'string'
+      ? scVal.switch
+      : (getScValSwitch(scVal) ?? '')
   return {
-    switch: scVal.switch,
-    value: scVal.value,
+    switch: switchName,
+    value: toCloneSafeValue(getScValValue(scVal)),
   }
 }
 

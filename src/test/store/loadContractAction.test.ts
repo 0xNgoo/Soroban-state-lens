@@ -15,6 +15,25 @@ function makeTemporaryLedgerKey(): string {
   return ledgerKey.toXDR('base64')
 }
 
+function makeContractDataLedgerEntryXdr(
+  value: ReturnType<typeof xdr.ScVal.scvString>,
+): string {
+  const data = xdr.LedgerEntryData.contractData(
+    new xdr.ContractDataEntry({
+      ext: new xdr.ExtensionPoint(0),
+      contract: xdr.ScAddress.scAddressTypeContract(Buffer.alloc(32)),
+      key: xdr.ScVal.scvSymbol('temporary-key'),
+      durability: xdr.ContractDataDurability.temporary(),
+      val: value,
+    }),
+  )
+  return new xdr.LedgerEntry({
+    lastModifiedLedgerSeq: 7,
+    data,
+    ext: new xdr.LedgerEntryExt(0),
+  }).toXDR('base64')
+}
+
 const mockGetLedgerEntries = vi.fn()
 const mockDecodeScVal = vi.fn()
 const mockTerminateDecoderWorkerSafe = vi.fn()
@@ -47,12 +66,16 @@ describe('loadContract action', () => {
       await import('../../store/lensStore')
     resetStore()
     const temporaryKey = makeTemporaryLedgerKey()
+    const valueXdr = xdr.ScVal.scvString('decoded').toXDR('base64')
+    const ledgerEntryXdr = makeContractDataLedgerEntryXdr(
+      xdr.ScVal.scvString('decoded'),
+    )
 
     mockGetLedgerEntries.mockResolvedValue({
       entries: [
         {
           key: temporaryKey,
-          xdr: 'xdr-1',
+          xdr: ledgerEntryXdr,
           lastModifiedLedgerSeq: 7,
           liveUntilLedgerSeq: 50,
         },
@@ -75,7 +98,8 @@ describe('loadContract action', () => {
     expect(state.activeContractId).toBe('C1')
     expect(state.contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
     expect(Object.keys(state.ledgerData)).toHaveLength(1)
-    expect(loadedEntry.rawXdr).toBe('xdr-1')
+    expect(mockDecodeScVal).toHaveBeenCalledWith({ xdr: valueXdr })
+    expect(loadedEntry.rawXdr).toBe(ledgerEntryXdr)
     expect(loadedEntry.durability).toBe('Temporary')
     expect(loadedEntry.expired).toBe(true)
     expect(loadedEntry.value).toMatchObject({
@@ -437,7 +461,9 @@ describe('loadContract action', () => {
         }),
       )
 
-      const loadPromise = useLensStore.getState().loadContract('C1', ['rpc-key-1'])
+      const loadPromise = useLensStore
+        .getState()
+        .loadContract('C1', ['rpc-key-1'])
       await useLensStore.getState().refreshActiveKeys()
 
       expect(mockGetLedgerEntries).toHaveBeenCalledTimes(1)
@@ -449,9 +475,8 @@ describe('loadContract action', () => {
     })
 
     it('emits sequence changes and counts fetches correctly on refresh', async () => {
-      const { resetStore, getStoreState, useLensStore } = await import(
-        '../../store/lensStore'
-      )
+      const { resetStore, getStoreState, useLensStore } =
+        await import('../../store/lensStore')
       resetStore()
 
       useLensStore.setState({
