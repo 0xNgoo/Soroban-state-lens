@@ -20,6 +20,16 @@ export interface DecoderWorkerError {
   details?: Record<string, unknown>
 }
 
+export const MAX_DECODER_ERROR_DETAIL_LENGTH = 1000
+
+export function limitDecoderErrorDetail(detail: string): string {
+  if (detail.length <= MAX_DECODER_ERROR_DETAIL_LENGTH) {
+    return detail
+  }
+
+  return `${detail.slice(0, MAX_DECODER_ERROR_DETAIL_LENGTH - 3)}...`
+}
+
 /**
  * Request payload for the ping method.
  * Currently empty but structured for future extensibility.
@@ -81,6 +91,8 @@ export type NormalizeResult = NormalizeResponse | DecoderWorkerError
 export interface DecodeScValRequest {
   /** Base64 encoded ScVal XDR string */
   xdr: string
+  /** Optional maximum recursion depth for XDR-decoded normalization */
+  maxDepth?: number
 }
 
 /**

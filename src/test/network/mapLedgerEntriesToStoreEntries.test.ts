@@ -1,7 +1,52 @@
 import { describe, expect, it } from 'vitest'
+import { xdr } from '@stellar/stellar-sdk'
 import { mapLedgerEntriesToStoreEntries } from '../../lib/network/mapLedgerEntriesToStoreEntries'
 
+function makeContractDataKey(durability: 'persistent' | 'temporary'): string {
+  const ledgerKey = xdr.LedgerKey.contractData(
+    new xdr.LedgerKeyContractData({
+      contract: xdr.ScAddress.scAddressTypeContract(Buffer.alloc(32)),
+      key: xdr.ScVal.scvSymbol('metadata-key'),
+      durability: xdr.ContractDataDurability[durability](),
+    }),
+  )
+  return ledgerKey.toXDR('base64')
+}
+
 describe('mapLedgerEntriesToStoreEntries', () => {
+  it.each([
+    ['persistent', 'Persistent'],
+    ['temporary', 'Temporary'],
+  ] as const)(
+    'maps %s durability from the ledger key XDR',
+    (durability, expected) => {
+      const key = makeContractDataKey(durability)
+      const [mapped] = mapLedgerEntriesToStoreEntries({
+        contractId: 'CONTRACT_META',
+        entries: [{ key, xdr: 'value-xdr', lastModifiedLedgerSeq: 77 }],
+      })
+
+      expect(mapped.durability).toBe(expected)
+    },
+  )
+
+  it('marks temporary entries expired only after their live-until ledger', () => {
+    const key = makeContractDataKey('temporary')
+    const [expired] = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_META',
+      latestLedger: 101,
+      entries: [{ key, xdr: 'value-xdr', liveUntilLedgerSeq: 100 }],
+    })
+    const [stillLive] = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_META',
+      latestLedger: 100,
+      entries: [{ key, xdr: 'value-xdr', liveUntilLedgerSeq: 100 }],
+    })
+
+    expect(expired.expired).toBe(true)
+    expect(stillLive.expired).toBeUndefined()
+  })
+
   it('maps representative entries into stable store records', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_1',
@@ -30,6 +75,20 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         rawXdr: 'xdr-1',
       },
     ])
+  })
+
+  it('normalizes padded and lowercase contract IDs before mapping', () => {
+    const canonical = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_1',
+      entries: [{ key: 'ledger-key-1', xdr: 'xdr-1' }],
+    })
+    const padded = mapLedgerEntriesToStoreEntries({
+      contractId: '  contract_1  ',
+      entries: [{ key: 'ledger-key-1', xdr: 'xdr-1' }],
+    })
+
+    expect(padded).toEqual(canonical)
+    expect(padded[0].contractId).toBe('CONTRACT_1')
   })
 
   it('falls back safely when optional metadata is missing', () => {
@@ -66,86 +125,148 @@ describe('mapLedgerEntriesToStoreEntries', () => {
     expect(result[1]?.key).toBe('CONTRACT_3::Other::b')
   })
 
-  it('rejects negative or non-integer ledger metadata and preserves valid values', () => {
+  // ── Fallback paths (#305) ────────────────────────────────────────────
+
+  it('defaults lastModifiedLedger to 0 when lastModifiedLedgerSeq is missing (#305)', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_4',
       entries: [
         {
-          key: 'n',
-          xdr: 'xdr-n',
-          lastModifiedLedgerSeq: -5,
-          liveUntilLedgerSeq: -1,
-        },
-        {
-          key: 'f',
-          xdr: 'xdr-f',
-          lastModifiedLedgerSeq: 3.14,
-          liveUntilLedgerSeq: 200.5,
-        },
-        {
-          key: 'v',
-          xdr: 'xdr-v',
-          lastModifiedLedgerSeq: 10,
-          liveUntilLedgerSeq: 20,
+          key: 'ledger-key-4',
+          xdr: 'xdr-4',
+          // no lastModifiedLedgerSeq — optional field absent
         },
       ],
+      decodedValuesByKey: {
+        'ledger-key-4': { kind: 'primitive', scType: 'u64', value: '123' },
+      },
     })
 
     expect(result).toEqual([
       {
-        key: 'CONTRACT_4::Other::n',
+        key: 'CONTRACT_4::Other::ledger-key-4',
         contractId: 'CONTRACT_4',
         type: 'Other',
-        value: 'xdr-n',
-        canonicalKey: 'n',
+        value: { kind: 'primitive', scType: 'u64', value: '123' },
         lastModifiedLedger: 0,
         expirationLedger: undefined,
-        rawXdr: 'xdr-n',
-      },
-      {
-        key: 'CONTRACT_4::Other::f',
-        contractId: 'CONTRACT_4',
-        type: 'Other',
-        value: 'xdr-f',
-        canonicalKey: 'f',
-        lastModifiedLedger: 0,
-        expirationLedger: undefined,
-        rawXdr: 'xdr-f',
-      },
-      {
-        key: 'CONTRACT_4::Other::v',
-        contractId: 'CONTRACT_4',
-        type: 'Other',
-        value: 'xdr-v',
-        canonicalKey: 'v',
-        lastModifiedLedger: 10,
-        expirationLedger: 20,
-        rawXdr: 'xdr-v',
+        rawXdr: 'xdr-4',
       },
     ])
   })
 
-  it('preserves the canonical key while exposing a decoded composite-key preview', () => {
+  it('falls back to raw XDR when the decoded value is absent (#305)', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_5',
-      entries: [{ key: 'canonical-xdr-key', xdr: 'entry-data-xdr' }],
-      decodedMetadataByKey: {
-        'canonical-xdr-key': {
-          type: 'ContractData',
-          durability: 'Persistent',
+      entries: [
+        {
+          key: 'ledger-key-5',
+          xdr: 'xdr-5',
+          lastModifiedLedgerSeq: 7,
+          liveUntilLedgerSeq: 10,
         },
-      },
-      decodedKeyPreviewsByKey: {
-        'canonical-xdr-key': '[owner, balance]',
+      ],
+      decodedValuesByKey: {
+        // decoded value absent for this key
+        'other-key': { kind: 'primitive', scType: 'string', value: 'ignored' },
       },
     })
 
-    expect(result[0]).toMatchObject({
-      key: 'CONTRACT_5::ContractData::canonical-xdr-key',
-      type: 'ContractData',
-      durability: 'Persistent',
-      canonicalKey: 'canonical-xdr-key',
-      displayKey: '[owner, balance]',
+    expect(result).toEqual([
+      {
+        key: 'CONTRACT_5::Other::ledger-key-5',
+        contractId: 'CONTRACT_5',
+        type: 'Other',
+        value: 'xdr-5',
+        lastModifiedLedger: 7,
+        expirationLedger: 10,
+        rawXdr: 'xdr-5',
+      },
+    ])
+  })
+
+  it('treats an explicitly empty decoded map like an absent one (#305)', () => {
+    const result = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_6',
+      entries: [
+        { key: 'ledger-key-6', xdr: 'xdr-6', lastModifiedLedgerSeq: 3 },
+      ],
+      decodedValuesByKey: {},
     })
+
+    expect(result).toEqual([
+      {
+        key: 'CONTRACT_6::Other::ledger-key-6',
+        contractId: 'CONTRACT_6',
+        type: 'Other',
+        value: 'xdr-6',
+        lastModifiedLedger: 3,
+        expirationLedger: undefined,
+        rawXdr: 'xdr-6',
+      },
+    ])
+  })
+
+  it('falls back per-entry when only some entries have decoded values (#305)', () => {
+    const result = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_7',
+      entries: [
+        { key: 'decoded', xdr: 'xdr-decoded', lastModifiedLedgerSeq: 1 },
+        { key: 'raw', xdr: 'xdr-raw', lastModifiedLedgerSeq: 2 },
+      ],
+      decodedValuesByKey: {
+        decoded: { kind: 'primitive', scType: 'string', value: 'present' },
+      },
+    })
+
+    expect(result).toEqual([
+      {
+        key: 'CONTRACT_7::Other::decoded',
+        contractId: 'CONTRACT_7',
+        type: 'Other',
+        value: { kind: 'primitive', scType: 'string', value: 'present' },
+        lastModifiedLedger: 1,
+        expirationLedger: undefined,
+        rawXdr: 'xdr-decoded',
+      },
+      {
+        key: 'CONTRACT_7::Other::raw',
+        contractId: 'CONTRACT_7',
+        type: 'Other',
+        value: 'xdr-raw',
+        lastModifiedLedger: 2,
+        expirationLedger: undefined,
+        rawXdr: 'xdr-raw',
+      },
+    ])
+  })
+
+  it('treats an explicit undefined decoded value as absent (#305)', () => {
+    const result = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_8',
+      entries: [{ key: 'k', xdr: 'xdr-k', lastModifiedLedgerSeq: 5 }],
+      decodedValuesByKey: { k: undefined },
+    })
+
+    expect(result).toEqual([
+      {
+        key: 'CONTRACT_8::Other::k',
+        contractId: 'CONTRACT_8',
+        type: 'Other',
+        value: 'xdr-k',
+        lastModifiedLedger: 5,
+        expirationLedger: undefined,
+        rawXdr: 'xdr-k',
+      },
+    ])
+  })
+
+  it('returns an empty array when there are no entries (#305)', () => {
+    const result = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_9',
+      entries: [],
+    })
+
+    expect(result).toEqual([])
   })
 })

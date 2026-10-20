@@ -13,6 +13,7 @@ export interface FlatTreeRow {
   childCount: number
   canonicalKey?: string
   node: Node
+  expired?: boolean
 }
 
 export interface FlattenTreeRoot {
@@ -20,4 +21,5 @@ export interface FlattenTreeRoot {
   label: string
   canonicalKey?: string
   node: Node
+  expired?: boolean
 }

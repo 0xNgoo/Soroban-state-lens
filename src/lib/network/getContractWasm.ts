@@ -1,12 +1,14 @@
 import { buildJsonRpcRequest } from '../rpc/buildJsonRpcRequest'
 import { isJsonRpcSuccessResponse } from '../rpc/isJsonRpcSuccessResponse'
+import { normalizeTimeoutMs } from '../rpc/normalizeTimeoutMs'
 import { toRpcRequestId } from '../rpc/toRpcRequestId'
 import { callRpc } from './rpcClient'
-import type { RpcError } from './types'
+import type { RpcError, RpcRequestOptions } from './types'
 
-export interface GetContractWasmParams {
+export interface GetContractWasmParams extends RpcRequestOptions {
   rpcUrl: string
   contractId: string
+  timeout?: number
 }
 
 export interface GetContractWasmSuccess {
@@ -53,19 +55,7 @@ function parseContractCodeResult(value: unknown): string | null {
   return null
 }
 
-function isStrictlyValidBase64(value: string): boolean {
-  if (value.length === 0 || value.trim() !== value) {
-    return false
-  }
-
-  return /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(==)?|[A-Za-z0-9+/]{3}=?)?$/.test(value)
-}
-
 function decodeBase64ToBytes(value: string): Uint8Array {
-  if (!isStrictlyValidBase64(value)) {
-    throw new Error('Failed to decode contract WASM bytes')
-  }
-
   const binaryString = atob(value)
   const bytes = new Uint8Array(binaryString.length)
   for (let i = 0; i < binaryString.length; i += 1) {
@@ -78,16 +68,14 @@ export async function getContractWasm(
   params: GetContractWasmParams,
 ): Promise<GetContractWasmResult> {
   try {
+    const requestId = toRpcRequestId()
     const response = await callRpc(
       {
         url: params.rpcUrl,
-        timeout: 10000,
+        timeout: normalizeTimeoutMs(params.timeoutMs ?? params.timeout, 10000),
+        signal: params.signal,
       },
-      buildJsonRpcRequest(
-        'getContractCode',
-        [params.contractId],
-        toRpcRequestId(),
-      ),
+      buildJsonRpcRequest('getContractCode', [params.contractId], requestId),
     )
 
     if (isRpcError(response)) {
@@ -97,7 +85,7 @@ export async function getContractWasm(
       }
     }
 
-    if (!isJsonRpcSuccessResponse(response)) {
+    if (!isJsonRpcSuccessResponse(response, requestId)) {
       return {
         success: false,
         error: 'Invalid response from RPC server',
@@ -105,10 +93,10 @@ export async function getContractWasm(
     }
 
     const encodedWasm = parseContractCodeResult(response.result)
-    if (encodedWasm == null || encodedWasm.trim() === '') {
+    if (!encodedWasm) {
       return {
         success: false,
-        error: 'Failed to decode contract WASM bytes',
+        error: 'Contract code response is missing or malformed',
       }
     }
 
