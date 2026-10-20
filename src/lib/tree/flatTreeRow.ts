@@ -14,12 +14,12 @@ export interface FlatTreeRow {
   rawLedgerKeyXdr?: string
   durability?: string
   node: Node
+  expired?: boolean
 }
 
 export interface FlattenTreeRoot {
   id: string
   label: string
   node: Node
-  rawLedgerKeyXdr?: string
-  durability?: string
+  expired?: boolean
 }

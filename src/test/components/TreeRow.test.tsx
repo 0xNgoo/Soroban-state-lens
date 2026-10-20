@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import { xdr } from '@stellar/stellar-sdk'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TreeRow } from '../../components/explorer/TreeRow'
+import { useLensStore } from '../../store/lensStore'
+import { BigIntDisplayMode, ByteDisplayMode } from '../../store/types'
 import type { FlatTreeRow } from '../../lib/tree/flatTreeRow'
 import type { Node } from '../../types/node'
 
@@ -29,6 +30,10 @@ function makeRow(partial: Partial<FlatTreeRow> = {}): FlatTreeRow {
 }
 
 describe('TreeRow', () => {
+  afterEach(() => {
+    useLensStore.getState().resetPreferences()
+  })
+
   it('renders indentation spacer for leaf nodes', () => {
     render(
       <TreeRow
@@ -40,8 +45,27 @@ describe('TreeRow', () => {
     )
 
     expect(screen.queryByRole('button', { name: /toggle/i })).toBeNull()
+    expect(
+      screen
+        .getByRole('treeitem', { name: 'Open entry[0].value' })
+        .getAttribute('aria-level'),
+    ).toBe('3')
     expect(screen.getByText('hello')).toBeTruthy()
     expect(screen.getByText('string')).toBeTruthy()
+  })
+
+  it('marks expired rows while preserving the value preview', () => {
+    render(
+      <TreeRow
+        row={makeRow({ expired: true })}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('Expired')).toBeTruthy()
+    expect(screen.getByText('hello')).toBeTruthy()
   })
 
   it('renders expander only for parent rows', () => {
@@ -67,6 +91,47 @@ describe('TreeRow', () => {
     expect(screen.getByText('0 items')).toBeTruthy()
   })
 
+  it('reports expansion state only for expandable rows', () => {
+    const row = makeRow({
+      hasChildren: true,
+      kind: 'vec',
+      node: { kind: 'vec', path: [], items: [], raw: { switch: 'ScvVec' } },
+    })
+
+    const { rerender } = render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    const expandableRow = screen.getByRole('treeitem', {
+      name: 'Open entry[0].value',
+    })
+    expect(expandableRow.getAttribute('aria-expanded')).toBe('false')
+
+    rerender(
+      <TreeRow row={row} rowHeight={40} isExpanded={true} isSelected={false} />,
+    )
+    expect(expandableRow.getAttribute('aria-expanded')).toBe('true')
+
+    rerender(
+      <TreeRow
+        row={makeRow()}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+    expect(
+      screen
+        .getByRole('treeitem', { name: 'Open entry[0].value' })
+        .getAttribute('aria-expanded'),
+    ).toBeNull()
+  })
+
   it('calls activate handler on row click', () => {
     const onActivate = vi.fn()
     const row = makeRow()
@@ -81,33 +146,19 @@ describe('TreeRow', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open entry[0].value' }))
+    fireEvent.click(
+      screen.getByRole('treeitem', { name: 'Open entry[0].value' }),
+    )
     expect(onActivate).toHaveBeenCalledWith(row)
   })
 
-  it('copies the original LedgerKey XDR from a root row', async () => {
-    const previousClipboard = Object.getOwnPropertyDescriptor(
-      navigator,
-      'clipboard',
-    )
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    })
-
+  it('calls activate handler on Enter and Space', () => {
     const onActivate = vi.fn()
-    const ledgerKey = xdr.LedgerKey.contractData(
-      new xdr.LedgerKeyContractData({
-        contract: xdr.ScAddress.scAddressTypeContract(new Uint8Array(32)),
-        key: xdr.ScVal.scvSymbol('clipboard-fixture'),
-        durability: xdr.ContractDataDurability.persistent(),
-      }),
-    )
-    const keyXdr = ledgerKey.toXDR('base64')
+    const row = makeRow()
+
     render(
       <TreeRow
-        row={makeRow({ depth: 0, rawLedgerKeyXdr: keyXdr })}
+        row={row}
         rowHeight={40}
         isExpanded={false}
         isSelected={false}
@@ -115,21 +166,159 @@ describe('TreeRow', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy LedgerKey XDR' }))
+    const treeitem = screen.getByRole('treeitem', {
+      name: 'Open entry[0].value',
+    })
+    fireEvent.keyDown(treeitem, { key: 'Enter' })
+    fireEvent.keyDown(treeitem, { key: ' ' })
 
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(keyXdr))
-    expect(onActivate).not.toHaveBeenCalled()
-    expect(screen.getByText('Copied')).toBeTruthy()
-    expect(
-      xdr.LedgerKey.fromXDR(writeText.mock.calls[0]?.[0] ?? '', 'base64')
-        .toXDR()
-        .toString('hex'),
-    ).toBe(ledgerKey.toXDR().toString('hex'))
+    expect(onActivate).toHaveBeenCalledTimes(2)
+    expect(onActivate).toHaveBeenCalledWith(row)
+  })
 
-    if (previousClipboard) {
-      Object.defineProperty(navigator, 'clipboard', previousClipboard)
-    } else {
-      Reflect.deleteProperty(navigator, 'clipboard')
-    }
+  it('notifies parent on ArrowUp and ArrowDown', () => {
+    const onKeyNavigate = vi.fn()
+    const row = makeRow()
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+        onKeyNavigate={onKeyNavigate}
+      />,
+    )
+
+    const treeitem = screen.getByRole('treeitem', {
+      name: 'Open entry[0].value',
+    })
+    fireEvent.keyDown(treeitem, { key: 'ArrowDown' })
+    fireEvent.keyDown(treeitem, { key: 'ArrowUp' })
+
+    expect(onKeyNavigate).toHaveBeenNthCalledWith(1, 'down')
+    expect(onKeyNavigate).toHaveBeenNthCalledWith(2, 'up')
+  })
+
+  it('shows a distinct truncation preview for truncated marker rows', () => {
+    const row = makeRow({
+      kind: 'truncated',
+      label: 'truncated-marker',
+      node: { kind: 'truncated', path: [], depth: 3 },
+    })
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('truncated')).toBeTruthy()
+    expect(screen.getByText('truncated at depth=3')).toBeTruthy()
+  })
+
+  it('shows a distinct cycle preview for cycle marker rows', () => {
+    const row = makeRow({
+      kind: 'cycle',
+      label: 'cycle-marker',
+      node: { kind: 'cycle', path: [], depth: 3 },
+    })
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('cycle')).toBeTruthy()
+    expect(screen.getByText('cycle detected at depth=3')).toBeTruthy()
+  })
+
+  it('formats byte previews using the saved preference', () => {
+    act(() => {
+      useLensStore.getState().setByteDisplayMode(ByteDisplayMode.UTF8)
+    })
+    const row = makeRow({
+      node: {
+        kind: 'primitive',
+        path: [],
+        scType: 'bytes',
+        value: [65, 66],
+        raw: { switch: 'ScvBytes' },
+      },
+    })
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('AB')).toBeTruthy()
+  })
+
+  it('formats large integer previews using the saved preference', () => {
+    act(() => {
+      useLensStore.getState().setBigIntDisplayMode(BigIntDisplayMode.HEX)
+    })
+    const row = makeRow({
+      node: {
+        kind: 'primitive',
+        path: [],
+        scType: 'u64',
+        value: '255',
+        raw: { switch: 'ScvU64' },
+      },
+    })
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('0xff')).toBeTruthy()
+  })
+
+  it('reports collection limits without counting the truncation marker', () => {
+    const row = makeRow({
+      kind: 'vec',
+      node: {
+        kind: 'vec',
+        path: [],
+        items: [
+          primitiveNode,
+          primitiveNode,
+          primitiveNode,
+          { kind: 'truncated', path: [], depth: 1 },
+        ],
+        childLimit: 3,
+        omittedChildren: 2,
+        raw: { switch: 'ScvVec' },
+      },
+    })
+
+    render(
+      <TreeRow
+        row={row}
+        rowHeight={40}
+        isExpanded={false}
+        isSelected={false}
+      />,
+    )
+
+    expect(screen.getByText('3 items (limit 3, 2 omitted)')).toBeTruthy()
   })
 })

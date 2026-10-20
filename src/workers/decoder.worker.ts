@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink'
 import { xdr } from '@stellar/stellar-sdk'
+import { limitDecoderErrorDetail } from '../types/decoder-worker'
 import { normalizeScAddress, normalizeScVal } from './decoder/normalizeScVal'
 import { cloneSafeNode, normalizeNode } from './decoder/normalizeNode'
 import type {
@@ -220,12 +221,16 @@ export const decoderWorkerApi: DecoderWorkerApi = {
 
       if (error instanceof Error) {
         errorDetails.stack = error.stack
-        errorDetails.name = error.name
+          ? limitDecoderErrorDetail(error.stack)
+          : undefined
+        errorDetails.name = limitDecoderErrorDetail(error.name)
       }
 
       const workerError: DecoderWorkerError = {
         code: 'NORMALIZE_FAILED',
-        message: `Failed to normalize ScVal: ${errorMessage}`,
+        message: limitDecoderErrorDetail(
+          `Failed to normalize ScVal: ${errorMessage}`,
+        ),
         details: errorDetails,
       }
 
@@ -235,7 +240,7 @@ export const decoderWorkerApi: DecoderWorkerApi = {
 
   decodeScVal(request: DecodeScValRequest): Promise<DecodeScValResult> {
     try {
-      const { xdr: xdrString } = request
+      const { xdr: xdrString, maxDepth } = request
 
       // Decode the ScVal from XDR
       const scValXdr = xdr.ScVal.fromXDR(xdrString, 'base64')
@@ -243,8 +248,10 @@ export const decoderWorkerApi: DecoderWorkerApi = {
       // Convert SDK XDR unions and containers to the plain shape normalizeNode expects.
       const plainScVal = normalizeSdkScVal(scValXdr)
 
-      // Perform full node normalization
-      const normalizedNode = cloneSafeNode(normalizeNode(plainScVal))
+      // Perform full node normalization with optional depth limiting
+      const normalizedNode = normalizeNode(plainScVal, undefined, undefined, {
+        maxDepth,
+      })
 
       return Promise.resolve(normalizedNode)
     } catch (error) {
@@ -254,12 +261,16 @@ export const decoderWorkerApi: DecoderWorkerApi = {
 
       if (error instanceof Error) {
         errorDetails.stack = error.stack
-        errorDetails.name = error.name
+          ? limitDecoderErrorDetail(error.stack)
+          : undefined
+        errorDetails.name = limitDecoderErrorDetail(error.name)
       }
 
       const workerError: DecoderWorkerError = {
         code: 'DECODE_FAILED',
-        message: `Failed to decode ScVal XDR: ${errorMessage}`,
+        message: limitDecoderErrorDetail(
+          `Failed to decode ScVal XDR: ${errorMessage}`,
+        ),
         details: errorDetails,
       }
 
