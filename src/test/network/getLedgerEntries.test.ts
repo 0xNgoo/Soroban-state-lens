@@ -64,6 +64,10 @@ describe('getLedgerEntries', () => {
           body: expect.stringContaining('"method":"getLedgerEntries"'),
         }),
       )
+      const requestBody = JSON.parse(
+        vi.mocked(fetch).mock.calls[0]?.[1]?.body as string,
+      ) as { params: unknown }
+      expect(requestBody.params).toEqual({ keys: mockKeys })
 
       expect(result).toEqual({
         entries: [
@@ -156,6 +160,21 @@ describe('getLedgerEntries', () => {
           keys: mockKeys,
         }),
       ).rejects.toThrow('RPC Error (-32600): Invalid Request')
+    })
+
+    it('surfaces invalid-parameter RPC errors', async () => {
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          jsonrpc: '2.0',
+          id: 1,
+          error: { code: -32602, message: 'Invalid params' },
+        }),
+      } as Response)
+
+      await expect(
+        getLedgerEntries({ rpcUrl: mockRpcUrl, keys: mockKeys }),
+      ).rejects.toThrow('RPC Error (-32602): Invalid params')
     })
 
     it('throws error on invalid JSON-RPC format', async () => {

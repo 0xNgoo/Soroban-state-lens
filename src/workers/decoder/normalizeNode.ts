@@ -11,6 +11,7 @@ import type {
   PathSegment,
   PrimitiveNode,
   RawScVal,
+  RawValue,
   TruncatedNode,
   UnsupportedNode,
   VecNode,
@@ -68,13 +69,108 @@ export interface NormalizeOptions {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+function toRawValue(
+  value: unknown,
+  ancestors = new WeakSet<object>(),
+): RawValue {
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    typeof value === 'string'
+  ) {
+    return value
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString()
+  }
+
+  if (value instanceof Uint8Array) {
+    return Array.from(value)
+  }
+
+  if (Array.isArray(value)) {
+    if (ancestors.has(value)) {
+      return null
+    }
+
+    ancestors.add(value)
+    const plainArray = value.map((item) => toRawValue(item, ancestors))
+    ancestors.delete(value)
+    return plainArray
+  }
+
+  if (typeof value !== 'object') {
+    return null
+  }
+
+  if (ancestors.has(value)) {
+    return null
+  }
+
+  ancestors.add(value)
+  const plainValue: Record<string, RawValue> = {}
+
+  for (const key of Object.keys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    if (
+      descriptor &&
+      'value' in descriptor &&
+      typeof descriptor.value !== 'function'
+    ) {
+      plainValue[key] = toRawValue(descriptor.value, ancestors)
+    }
+  }
+
+  ancestors.delete(value)
+  return plainValue
+}
+
 function toRaw(scVal: ScVal | null | undefined): RawScVal {
   if (!scVal) {
     return { switch: '' }
   }
-  return {
+  const raw: RawScVal = {
     switch: scVal.switch,
-    value: scVal.value,
+  }
+  if (scVal.value !== undefined) {
+    raw.value = toRawValue(scVal.value)
+  }
+  return raw
+}
+
+function cloneSafeRaw(raw: RawScVal): RawScVal {
+  return raw.value === undefined
+    ? { switch: raw.switch }
+    : { switch: raw.switch, value: toRawValue(raw.value) }
+}
+
+/**
+ * Copies a normalized node tree while ensuring every raw payload is plain data.
+ */
+export function cloneSafeNode(node: Node): Node {
+  switch (node.kind) {
+    case 'vec':
+      return {
+        ...node,
+        items: node.items.map(cloneSafeNode),
+        raw: cloneSafeRaw(node.raw),
+      }
+    case 'map':
+      return {
+        ...node,
+        entries: node.entries.map((entry) => ({
+          key: cloneSafeNode(entry.key),
+          value: cloneSafeNode(entry.value),
+        })),
+        raw: cloneSafeRaw(node.raw),
+      }
+    case 'cycle':
+    case 'truncated':
+      return node
+    default:
+      return { ...node, raw: cloneSafeRaw(node.raw) }
   }
 }
 

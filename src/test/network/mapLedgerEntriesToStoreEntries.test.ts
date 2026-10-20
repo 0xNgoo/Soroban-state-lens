@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { xdr } from '@stellar/stellar-sdk'
 import { mapLedgerEntriesToStoreEntries } from '../../lib/network/mapLedgerEntriesToStoreEntries'
 
 describe('mapLedgerEntriesToStoreEntries', () => {
@@ -26,6 +27,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         value: { kind: 'primitive', scType: 'string', value: 'hello' },
         lastModifiedLedger: 42,
         expirationLedger: 99,
+        rawKeyXdr: 'ledger-key-1',
         rawXdr: 'xdr-1',
       },
     ])
@@ -45,9 +47,39 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         value: 'xdr-2',
         lastModifiedLedger: 0,
         expirationLedger: undefined,
+        rawKeyXdr: 'ledger-key-2',
         rawXdr: 'xdr-2',
       },
     ])
+  })
+
+  it('classifies contract data from LedgerKey XDR and retains its raw key', () => {
+    const contract = xdr.ScAddress.scAddressTypeContract(new Uint8Array(32))
+    const ledgerKey = xdr.LedgerKey.contractData(
+      new xdr.LedgerKeyContractData({
+        contract,
+        key: xdr.ScVal.scvSymbol('temporary-key'),
+        durability: xdr.ContractDataDurability.temporary(),
+      }),
+    )
+    const keyXdr = ledgerKey.toXDR('base64')
+
+    const [entry] = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_TEMP',
+      entries: [{ key: keyXdr, xdr: 'entry-xdr' }],
+    })
+
+    expect(entry).toMatchObject({
+      key: `CONTRACT_TEMP::ContractData::${keyXdr}`,
+      type: 'ContractData',
+      durability: 'Temporary',
+      rawKeyXdr: keyXdr,
+    })
+    expect(
+      xdr.LedgerKey.fromXDR(entry.rawKeyXdr ?? '', 'base64')
+        .toXDR()
+        .toString('hex'),
+    ).toBe(ledgerKey.toXDR().toString('hex'))
   })
 
   it('maps multiple entries deterministically', () => {

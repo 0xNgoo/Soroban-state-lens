@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { FlatTreeRow } from '../../lib/tree/flatTreeRow'
 
 interface TreeRowProps {
@@ -52,6 +53,21 @@ export function TreeRow({
   onToggleExpand,
   onActivate,
 }: TreeRowProps) {
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
+
+  const handleCopyLedgerKey = async () => {
+    if (!row.rawLedgerKeyXdr) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(row.rawLedgerKeyXdr)
+      setCopyStatus('Copied')
+    } catch {
+      setCopyStatus('Copy failed')
+    }
+  }
+
   return (
     <div
       role="button"
@@ -70,7 +86,10 @@ export function TreeRow({
       style={{ height: rowHeight }}
       aria-label={`Open ${row.label}`}
     >
-      <div style={{ marginLeft: row.depth * 16 }} className="flex items-center gap-2 min-w-0">
+      <div
+        style={{ marginLeft: row.depth * 16 }}
+        className="flex items-center gap-2 min-w-0"
+      >
         {row.hasChildren ? (
           <button
             type="button"
@@ -87,13 +106,36 @@ export function TreeRow({
           <span className="w-4" aria-hidden="true" />
         )}
 
-        <span className="font-mono text-xs text-white truncate">{row.label}</span>
+        <span className="font-mono text-xs text-white truncate">
+          {row.label}
+        </span>
         <span className="font-mono text-[10px] uppercase text-primary border border-primary/30 rounded px-1 py-0.5">
           {typeBadge(row)}
         </span>
+        {row.durability && (
+          <span
+            className="font-mono text-[10px] text-text-muted border border-white/10 rounded px-1 py-0.5"
+            data-testid="ledger-durability"
+          >
+            {row.durability}
+          </span>
+        )}
         <span className="font-mono text-[11px] text-text-muted truncate">
           {formatPreview(row)}
         </span>
+        {row.rawLedgerKeyXdr && (
+          <button
+            type="button"
+            className="shrink-0 text-[10px] text-text-muted hover:text-white"
+            aria-label="Copy LedgerKey XDR"
+            onClick={(event) => {
+              event.stopPropagation()
+              void handleCopyLedgerKey()
+            }}
+          >
+            {copyStatus ?? 'Copy key'}
+          </button>
+        )}
       </div>
     </div>
   )

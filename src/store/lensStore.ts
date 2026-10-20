@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
+import { extractContractDataScValXdr } from '../lib/network/extractContractDataScVal'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
 import { isDecoderWorkerError } from '../types/decoder-worker'
 import { createDecoderWorkerSafe } from '../workers/createDecoderWorkerSafe'
@@ -292,7 +293,12 @@ const createContractLoadSlice = (
         const decodedValuesByKey: Record<string, unknown> = {}
 
         for (const entry of entries) {
-          const result = await worker.decodeScVal({ xdr: entry.xdr })
+          const scValXdr = extractContractDataScValXdr(entry.xdr)
+          if (scValXdr === null) {
+            continue
+          }
+
+          const result = await worker.decodeScVal({ xdr: scValXdr })
           decodedValuesByKey[entry.key] = isDecoderWorkerError(result)
             ? entry.xdr
             : result

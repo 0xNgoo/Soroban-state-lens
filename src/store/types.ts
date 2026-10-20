@@ -41,6 +41,7 @@ export interface LedgerEntry {
   value: unknown
   lastModifiedLedger: number
   expirationLedger?: number
+  rawKeyXdr?: string
   rawXdr?: string
 }
 

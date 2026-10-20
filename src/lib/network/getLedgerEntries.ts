@@ -47,7 +47,7 @@ export async function getLedgerEntries(
   }
 
   const requestId = toRpcRequestId()
-  const payload = buildJsonRpcRequest('getLedgerEntries', [keys], requestId)
+  const payload = buildJsonRpcRequest('getLedgerEntries', { keys }, requestId)
 
   try {
     const response = await fetch(rpcUrl, {

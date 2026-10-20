@@ -5,7 +5,9 @@ function isExpandable(node: Node): boolean {
   return node.kind === 'vec' || node.kind === 'map'
 }
 
-function getChildren(node: Node): Array<{ idPart: string; label: string; node: Node }> {
+function getChildren(
+  node: Node,
+): Array<{ idPart: string; label: string; node: Node }> {
   if (node.kind === 'vec') {
     return node.items.map((child, index) => ({
       idPart: `item-${index}`,
@@ -42,8 +44,20 @@ function walkNode(params: {
   depth: number
   label: string
   expandedIds: Set<string>
+  rawLedgerKeyXdr?: string
+  durability?: string
 }): void {
-  const { rows, node, id, parentId, depth, label, expandedIds } = params
+  const {
+    rows,
+    node,
+    id,
+    parentId,
+    depth,
+    label,
+    expandedIds,
+    rawLedgerKeyXdr,
+    durability,
+  } = params
   const children = getChildren(node)
 
   rows.push({
@@ -55,6 +69,10 @@ function walkNode(params: {
     kind: node.kind,
     hasChildren: children.length > 0,
     childCount: children.length,
+    ...(depth === 0 && rawLedgerKeyXdr !== undefined
+      ? { rawLedgerKeyXdr }
+      : {}),
+    ...(depth === 0 && durability !== undefined ? { durability } : {}),
     node,
   })
 
@@ -95,6 +113,8 @@ export function flattenTree(
       depth: 0,
       label: root.label,
       expandedIds,
+      rawLedgerKeyXdr: root.rawLedgerKeyXdr,
+      durability: root.durability,
     })
   }
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { xdr } from '@stellar/stellar-sdk'
 import { ContractLoadStatus } from '../../store/types'
 
 const mockGetLedgerEntries = vi.fn()
@@ -26,9 +27,8 @@ describe('loadContract action', () => {
   })
 
   it('loads, decodes, and stores entries on success', async () => {
-    const { resetStore, getStoreState, useLensStore } = await import(
-      '../../store/lensStore'
-    )
+    const { resetStore, getStoreState, useLensStore } =
+      await import('../../store/lensStore')
     resetStore()
 
     mockGetLedgerEntries.mockResolvedValue({
@@ -59,10 +59,53 @@ describe('loadContract action', () => {
     expect(state.ledgerData['C1::Other::key-1'].rawXdr).toBe('xdr-1')
   })
 
-  it('sets EMPTY when the load succeeds with no entries', async () => {
-    const { resetStore, getStoreState, useLensStore } = await import(
-      '../../store/lensStore'
+  it('extracts the ScVal from a real contract-data LedgerEntry before decoding', async () => {
+    const { resetStore, useLensStore } = await import('../../store/lensStore')
+    resetStore()
+
+    const contract = xdr.ScAddress.scAddressTypeContract(new Uint8Array(32))
+    const key = xdr.LedgerKey.contractData(
+      new xdr.LedgerKeyContractData({
+        contract,
+        key: xdr.ScVal.scvSymbol('load-fixture'),
+        durability: xdr.ContractDataDurability.persistent(),
+      }),
     )
+    const value = xdr.ScVal.scvVec([xdr.ScVal.scvU32(12)])
+    const entryXdr = new xdr.LedgerEntry({
+      lastModifiedLedgerSeq: 17,
+      data: xdr.LedgerEntryData.contractData(
+        new xdr.ContractDataEntry({
+          ext: new xdr.ExtensionPoint(0),
+          contract,
+          key: xdr.ScVal.scvSymbol('load-fixture'),
+          durability: xdr.ContractDataDurability.persistent(),
+          val: value,
+        }),
+      ),
+      ext: new xdr.LedgerEntryExt(0),
+    }).toXDR('base64')
+    mockGetLedgerEntries.mockResolvedValue({
+      entries: [{ key: key.toXDR('base64'), xdr: entryXdr }],
+      latestLedger: 18,
+    })
+    mockDecodeScVal.mockResolvedValue({
+      kind: 'vec',
+      path: [],
+      items: [],
+      raw: { switch: 'ScvVec', value: [] },
+    })
+
+    await useLensStore.getState().loadContract('C_LOAD', ['rpc-key'])
+
+    expect(mockDecodeScVal).toHaveBeenCalledWith({
+      xdr: value.toXDR('base64'),
+    })
+  })
+
+  it('sets EMPTY when the load succeeds with no entries', async () => {
+    const { resetStore, getStoreState, useLensStore } =
+      await import('../../store/lensStore')
     resetStore()
 
     mockGetLedgerEntries.mockResolvedValue({
@@ -85,9 +128,8 @@ describe('loadContract action', () => {
   })
 
   it('sets ERROR when load fails', async () => {
-    const { resetStore, getStoreState, useLensStore } = await import(
-      '../../store/lensStore'
-    )
+    const { resetStore, getStoreState, useLensStore } =
+      await import('../../store/lensStore')
     resetStore()
 
     mockGetLedgerEntries.mockRejectedValue(new Error('network failure'))
@@ -100,25 +142,26 @@ describe('loadContract action', () => {
   })
 
   it('ignores stale in-flight results and keeps newest response', async () => {
-    const { resetStore, getStoreState, useLensStore } = await import(
-      '../../store/lensStore'
-    )
+    const { resetStore, getStoreState, useLensStore } =
+      await import('../../store/lensStore')
     resetStore()
 
     let resolveFirst:
-      | ((
-          value: {
-            entries: Array<{
-              key: string
-              xdr: string
-              lastModifiedLedgerSeq?: number
-            }>
-            latestLedger: number
-          },
-        ) => void)
+      | ((value: {
+          entries: Array<{
+            key: string
+            xdr: string
+            lastModifiedLedgerSeq?: number
+          }>
+          latestLedger: number
+        }) => void)
       | undefined
     const firstPromise = new Promise<{
-      entries: Array<{ key: string; xdr: string; lastModifiedLedgerSeq?: number }>
+      entries: Array<{
+        key: string
+        xdr: string
+        lastModifiedLedgerSeq?: number
+      }>
       latestLedger: number
     }>((resolve) => {
       resolveFirst = resolve
@@ -127,9 +170,7 @@ describe('loadContract action', () => {
     mockGetLedgerEntries
       .mockReturnValueOnce(firstPromise)
       .mockResolvedValueOnce({
-        entries: [
-          { key: 'new-key', xdr: 'new-xdr', lastModifiedLedgerSeq: 2 },
-        ],
+        entries: [{ key: 'new-key', xdr: 'new-xdr', lastModifiedLedgerSeq: 2 }],
         latestLedger: 2,
       })
 
