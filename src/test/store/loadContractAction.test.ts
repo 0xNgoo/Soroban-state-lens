@@ -91,11 +91,11 @@ describe('loadContract action', () => {
       lastModifiedLedger: 1,
     }
     useLensStore.getState().upsertLedgerEntry(demoEntry)
-    mockGetLedgerEntries.mockResolvedValue({ entries: [], latestLedger: 100 })
-
     await useLensStore.getState().loadContract(SAMPLE_CONTRACT_ID, [])
 
     expect(getStoreState().ledgerData[demoEntry.key]).toEqual(demoEntry)
+    expect(getStoreState().contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
+    expect(mockGetLedgerEntries).not.toHaveBeenCalled()
   })
 
   it('sets EMPTY when the load succeeds with no entries', async () => {
@@ -510,6 +510,27 @@ describe('loadContract action', () => {
 
       await useLensStore.getState().refreshActiveKeys()
       expect(mockGetLedgerEntries).not.toHaveBeenCalled()
+    })
+
+    it('does not refresh local demo entries through the selected RPC', async () => {
+      const { SAMPLE_CONTRACT_ID } = await import('../../lib/demoContract')
+      const { resetStore, getStoreState, useLensStore } =
+        await import('../../store/lensStore')
+      resetStore()
+      const demoEntry = {
+        key: `${SAMPLE_CONTRACT_ID}::ContractData::demo-key`,
+        contractId: SAMPLE_CONTRACT_ID,
+        type: 'ContractData' as const,
+        value: 'demo value',
+        lastModifiedLedger: 1,
+      }
+      useLensStore.getState().upsertLedgerEntry(demoEntry)
+      useLensStore.getState().setActiveContractId(SAMPLE_CONTRACT_ID)
+
+      await useLensStore.getState().refreshActiveKeys()
+
+      expect(mockGetLedgerEntries).not.toHaveBeenCalled()
+      expect(getStoreState().ledgerData[demoEntry.key]).toEqual(demoEntry)
     })
 
     it('avoids duplicate in-flight work when a load is already active', async () => {
