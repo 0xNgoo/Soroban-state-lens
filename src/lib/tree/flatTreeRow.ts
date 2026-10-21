@@ -11,6 +11,7 @@ export interface FlatTreeRow {
   kind: FlatTreeRowKind
   hasChildren: boolean
   childCount: number
+  canonicalKey?: string
   node: Node
   expired?: boolean
 }
@@ -18,6 +19,7 @@ export interface FlatTreeRow {
 export interface FlattenTreeRoot {
   id: string
   label: string
+  canonicalKey?: string
   node: Node
   expired?: boolean
 }

@@ -5,10 +5,11 @@ import { useShallow } from 'zustand/react/shallow'
 import { deepClone } from '../lib/deepClone'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
 import {
+  decodeLedgerEntryMetadata,
   decodeLedgerKeyInfo,
-  extractContractValueXdr,
 } from '../lib/network/decodeLedgerEntry'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
+import { isContractId } from '../lib/validation/isContractId'
 import { normalizeContractIdInput } from '../lib/validation/normalizeContractIdInput'
 import {
   isDecoderWorkerError,
@@ -41,6 +42,7 @@ import {
 
 import type * as Comlink from 'comlink'
 import type { DecoderWorkerApi } from '../types/decoder-worker'
+import type { Node } from '../types/node'
 import type { PersistedState } from './persistence'
 import type {
   ContractLoadSlice,
@@ -541,11 +543,17 @@ const createContractLoadSlice = (
         }
 
         const decodedValuesByKey: Record<string, unknown> = {}
+        const decodedStorageKeysByKey: Partial<Record<string, Node>> = {}
         const decodeErrorReasonsByKey: Record<string, string> = {}
+        const metadataByKey: Record<
+          string,
+          ReturnType<typeof decodeLedgerEntryMetadata>
+        > = {}
         const keyInfoByKey: Record<
           string,
           ReturnType<typeof decodeLedgerKeyInfo>
         > = {}
+        const foreignContractKeys = new Set<string>()
         let workerUnavailableReason: string | null = null
 
         const decodeBatch = async () => {
@@ -567,13 +575,46 @@ const createContractLoadSlice = (
                 continue
               }
 
-              const extractedValue = extractContractValueXdr(entry.xdr)
-              if (!extractedValue.supported) {
+              if (
+                keyInfo.contractId &&
+                isContractId(contractId) &&
+                keyInfo.contractId !== contractId
+              ) {
+                foreignContractKeys.add(entry.key)
+                continue
+              }
+
+              let metadata: ReturnType<typeof decodeLedgerEntryMetadata>
+              try {
+                metadata = decodeLedgerEntryMetadata(entry)
+              } catch {
                 decodedValuesByKey[entry.key] = {
                   kind: 'raw-xdr',
                   xdr: entry.xdr,
                 }
-                decodeErrorReasonsByKey[entry.key] = extractedValue.reason
+                decodeErrorReasonsByKey[entry.key] = 'invalid-ledger-entry-data'
+                continue
+              }
+
+              if (
+                metadata.contractId &&
+                isContractId(contractId) &&
+                metadata.contractId !== contractId
+              ) {
+                foreignContractKeys.add(entry.key)
+                continue
+              }
+
+              metadataByKey[entry.key] = metadata
+              if (
+                metadata.type !== 'ContractData' ||
+                metadata.storageKeyXdr === undefined ||
+                metadata.valueXdr === undefined
+              ) {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
                 continue
               }
 
@@ -603,8 +644,20 @@ const createContractLoadSlice = (
               }
 
               try {
+                const decodedStorageKey = await activeDecoderWorker.decodeScVal(
+                  {
+                    xdr: metadata.storageKeyXdr,
+                  },
+                )
+                if (isRequestStale()) {
+                  return
+                }
+                if (!isDecoderWorkerError(decodedStorageKey)) {
+                  decodedStorageKeysByKey[entry.key] = decodedStorageKey
+                }
+
                 const result = await activeDecoderWorker.decodeScVal({
-                  xdr: extractedValue.valueXdr,
+                  xdr: metadata.valueXdr,
                 })
                 if (isRequestStale()) {
                   return
@@ -654,11 +707,15 @@ const createContractLoadSlice = (
 
         const mappedEntries = mapLedgerEntriesToStoreEntries({
           contractId,
-          entries,
+          entries: entries.filter(
+            (entry) => !foreignContractKeys.has(entry.key),
+          ),
           latestLedger,
           decodedValuesByKey,
+          decodedStorageKeysByKey,
           decodeErrorReasonsByKey,
           keyInfoByKey,
+          metadataByKey,
         })
 
         set((state) => ({

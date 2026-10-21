@@ -1,4 +1,4 @@
-import { xdr } from '@stellar/stellar-sdk'
+import { Address, xdr } from '@stellar/stellar-sdk'
 
 export function makeContractDataFixture(
   label = 'counter',
@@ -22,6 +22,7 @@ export function makeContractDataFixture(
   )
 
   return {
+    contractId: Address.fromScVal(xdr.ScVal.scvAddress(contract)).toString(),
     keyXdr: ledgerKey.toXDR('base64'),
     entryXdr: ledgerEntryData.toXDR('base64'),
     valueXdr: value.toXDR('base64'),

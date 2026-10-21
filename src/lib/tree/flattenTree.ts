@@ -74,11 +74,21 @@ function walkNode(params: {
   parentId: string | null
   depth: number
   label: string
+  canonicalKey?: string
   expandedIds: Set<string>
   expired?: boolean
 }): void {
-  const { rows, node, id, parentId, depth, label, expandedIds, expired } =
-    params
+  const {
+    rows,
+    node,
+    id,
+    parentId,
+    depth,
+    label,
+    canonicalKey,
+    expandedIds,
+    expired,
+  } = params
   const children = getChildren(node)
 
   rows.push({
@@ -90,6 +100,7 @@ function walkNode(params: {
     kind: node.kind,
     hasChildren: children.length > 0,
     childCount: children.length,
+    canonicalKey,
     node,
     ...(expired ? { expired: true } : {}),
   })
@@ -130,6 +141,7 @@ export function flattenTree(
       parentId: null,
       depth: 0,
       label: root.label,
+      canonicalKey: root.canonicalKey,
       expandedIds,
       expired: root.expired,
     })

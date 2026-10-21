@@ -201,7 +201,8 @@ function ContractExplorer() {
         return [
           {
             id: entry.key,
-            label: entry.displayName ?? entry.key,
+            label: entry.displayKey ?? entry.displayName ?? entry.key,
+            canonicalKey: entry.canonicalKey,
             node: entry.value,
             expired: entry.expired,
           },
