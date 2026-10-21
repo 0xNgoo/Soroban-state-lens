@@ -25,6 +25,7 @@ export default defineConfig({
   build: {
     // stellar-sdk and the decoder worker are inherently ~1 MB each and already
     // isolated as separately-cacheable chunks — suppress the false-positive warning.
+    // The actual budget enforcement lives in scripts/check-bundle-size.mjs.
     chunkSizeWarningLimit: 1100,
     rollupOptions: {
       output: {
@@ -60,6 +61,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       'scripts/check-source-integrity.test.mjs',
+      'src/test/scripts/check-bundle-size.test.mjs',
     ],
     environment: 'jsdom',
     globals: true,
