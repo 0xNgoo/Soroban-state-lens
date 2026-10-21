@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { xdr } from '@stellar/stellar-sdk'
+import { decoderWorkerApi } from '../../workers/decoder.worker'
+import { isDecoderWorkerError } from '../../types/decoder-worker'
 import { useLensStore } from '../../store/lensStore'
 import {
   NETWORK_CONFIG_STORAGE_KEY,
@@ -6,6 +9,7 @@ import {
   mergeNetworkConfig,
 } from '../../store/persistence'
 import { DEFAULT_NETWORKS } from '../../store/types'
+import type { LedgerEntry } from '../../store/types'
 
 // Simple localStorage mock
 const localStorageMock = (function () {
@@ -114,6 +118,54 @@ describe('LensStore Hydration', () => {
       contractId: 'C1',
       ledgerSequence: 12,
       label: 'Persisted snapshot',
+    })
+  })
+
+  it('persists a decoded map entry with key metadata and its child value', async () => {
+    const scVal = xdr.ScVal.scvMap([
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('answer'),
+        val: xdr.ScVal.scvU32(7),
+      }),
+    ])
+    const decodedValue = await decoderWorkerApi.decodeScVal({
+      xdr: scVal.toXDR('base64'),
+    })
+    if (isDecoderWorkerError(decodedValue)) {
+      throw new Error(`Map fixture decoding failed: ${decodedValue.message}`)
+    }
+
+    const entryKey = 'C1::ContractData::map-entry'
+    const entry: LedgerEntry = {
+      key: entryKey,
+      contractId: 'C1',
+      type: 'ContractData',
+      value: decodedValue,
+      lastModifiedLedger: 42,
+    }
+    useLensStore
+      .getState()
+      .addSnapshot('C1', { [entryKey]: entry }, 43, 'Map capture')
+
+    const savedState = localStorage.getItem(NETWORK_CONFIG_STORAGE_KEY)
+    expect(savedState).not.toBeNull()
+    if (savedState === null) throw new Error('Map snapshot was not saved')
+    useLensStore.setState({ snapshots: {} })
+    localStorage.setItem(NETWORK_CONFIG_STORAGE_KEY, savedState)
+
+    await useLensStore.persist.rehydrate()
+
+    const snapshots = useLensStore.getState().getSnapshots('C1')
+    expect(snapshots).toHaveLength(1)
+    const restoredValue = snapshots[0].ledgerData[entryKey].value
+    expect(restoredValue).toMatchObject({
+      kind: 'map',
+      entries: [
+        {
+          key: { kind: 'primitive', scType: 'symbol', value: 'answer' },
+          value: { kind: 'primitive', scType: 'u32', value: 7 },
+        },
+      ],
     })
   })
 

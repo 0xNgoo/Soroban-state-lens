@@ -45,6 +45,9 @@ describe('discovery route state', () => {
       />,
     )
     expect(screen.getByText('Loading discovered keys…')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toBe(
+      'Loading discovered keys.',
+    )
 
     rerender(
       <DiscoveryStateView
@@ -56,6 +59,7 @@ describe('discovery route state', () => {
       />,
     )
     expect(screen.getByText(/No keys discovered yet/i)).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toBe('No keys discovered.')
 
     rerender(
       <DiscoveryStateView
@@ -68,6 +72,9 @@ describe('discovery route state', () => {
       />,
     )
     expect(screen.getByText('Network failure')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toBe(
+      'Discovery failed: Network failure',
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(retry).toHaveBeenCalledTimes(1)
 
@@ -85,6 +92,9 @@ describe('discovery route state', () => {
       />,
     )
     expect(screen.getByText('/contracts/key1')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain(
+      'Discovery complete. 1 key found.',
+    )
     expect(
       screen.getAllByRole('button', { name: 'Add to watchlist' }),
     ).toHaveLength(1)

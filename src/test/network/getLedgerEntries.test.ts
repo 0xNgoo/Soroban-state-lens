@@ -4,6 +4,7 @@ import {
   AbortError,
   getLedgerEntries,
 } from '../../lib/network/getLedgerEntries'
+import { ledgerResponseFixture } from './fixtures/ledgerResponseFixture'
 
 import type { GetLedgerEntriesParams } from '../../lib/network/getLedgerEntries'
 
@@ -27,32 +28,33 @@ describe('getLedgerEntries', () => {
 
   describe('success scenarios', () => {
     it('fetches ledger entries successfully', async () => {
-      const mockRpcResponse = {
-        jsonrpc: '2.0',
-        id: 1,
-        result: {
-          entries: [
-            {
-              key: 'key1',
-              xdr: 'xdr1',
-              lastModifiedLedgerSeq: 100,
-              liveUntilLedgerSeq: 200,
-            },
-            {
-              key: 'key2',
-              xdr: 'xdr2',
-              lastModifiedLedgerSeq: 101,
-              liveUntilLedgerSeq: 201,
-            },
-          ],
-          latestLedger: 150,
-        },
+      const fixture = {
+        entries: [
+          {
+            key: 'key1',
+            xdr: 'xdr1',
+            lastModifiedLedgerSeq: 100,
+            liveUntilLedgerSeq: 200,
+          },
+          {
+            key: 'key2',
+            xdr: 'xdr2',
+            lastModifiedLedgerSeq: 101,
+            liveUntilLedgerSeq: 201,
+          },
+        ],
+        latestLedger: 150,
       }
 
-      vi.mocked(fetch).mockResolvedValue({
-        ok: true,
-        json: async () => mockRpcResponse,
-      } as Response)
+      vi.mocked(fetch).mockImplementation((_input, init) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              ledgerResponseFixture(String(init?.body), mockKeys, fixture),
+            ),
+        } as Response),
+      )
 
       const params: GetLedgerEntriesParams = {
         rpcUrl: mockRpcUrl,
@@ -71,22 +73,41 @@ describe('getLedgerEntries', () => {
       )
 
       expect(result).toEqual({
-        entries: [
-          {
-            key: 'key1',
-            xdr: 'xdr1',
-            lastModifiedLedgerSeq: 100,
-            liveUntilLedgerSeq: 200,
-          },
-          {
-            key: 'key2',
-            xdr: 'xdr2',
-            lastModifiedLedgerSeq: 101,
-            liveUntilLedgerSeq: 201,
-          },
-        ],
-        latestLedger: 150,
+        ...fixture,
       })
+    })
+
+    it('rejects positional params and returns the fixture for named keys', () => {
+      const result = {
+        entries: [{ key: 'key1', xdr: 'xdr1' }],
+        latestLedger: 150,
+      }
+
+      expect(() =>
+        ledgerResponseFixture(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'getLedgerEntries',
+            params: [mockKeys],
+            id: 1,
+          }),
+          mockKeys,
+          result,
+        ),
+      ).toThrow('named keys')
+
+      expect(
+        ledgerResponseFixture(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'getLedgerEntries',
+            params: { keys: mockKeys },
+            id: 1,
+          }),
+          mockKeys,
+          result,
+        ),
+      ).toEqual({ jsonrpc: '2.0', id: 1, result })
     })
 
     it('handles empty entries array from RPC', async () => {
@@ -544,7 +565,7 @@ describe('getLedgerEntries', () => {
         throw new Error('Expected fetch request options')
       }
       const requestBody = JSON.parse(requestInit.body as string)
-      expect(requestBody.params[0]).toEqual(['key1', 'key2', 'key3'])
+      expect(requestBody.params.keys).toEqual(['key1', 'key2', 'key3'])
 
       expect(result).toEqual({
         entries: [{ key: 'key1', xdr: 'xdr1', lastModifiedLedgerSeq: 100 }],
@@ -578,7 +599,7 @@ describe('getLedgerEntries', () => {
         throw new Error('Expected fetch request options')
       }
       const requestBody = JSON.parse(requestInit.body as string)
-      expect(requestBody.params[0]).toEqual(['key1'])
+      expect(requestBody.params.keys).toEqual(['key1'])
     })
 
     it('handles empty keys array after deduplication', async () => {

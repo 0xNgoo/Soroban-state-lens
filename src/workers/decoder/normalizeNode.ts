@@ -72,9 +72,42 @@ function toRaw(scVal: ScVal | null | undefined): RawScVal {
   if (!scVal) {
     return { switch: '' }
   }
+
+  const switchValue = getScValSwitch(scVal)
+  const value = getScValValue(scVal)
+  if (value === undefined) {
+    return { switch: switchValue ?? '' }
+  }
+
+  const ancestors: Array<object> = []
+  const serializedValue = JSON.stringify(
+    value,
+    function (this: unknown, _key, item: unknown) {
+      if (typeof item === 'bigint') {
+        return item.toString()
+      }
+      if (typeof item === 'object' && item !== null) {
+        while (
+          ancestors.length > 0 &&
+          ancestors[ancestors.length - 1] !== this
+        ) {
+          ancestors.pop()
+        }
+        if (ancestors.includes(item)) {
+          return '[Circular]'
+        }
+        ancestors.push(item)
+      }
+      return item
+    },
+  )
+  if (typeof serializedValue !== 'string') {
+    throw new TypeError('Raw ScVal value could not be serialized')
+  }
+
   return {
-    switch: scVal.switch,
-    value: scVal.value,
+    switch: switchValue ?? '',
+    value: JSON.parse(serializedValue) as unknown,
   }
 }
 
@@ -135,7 +168,10 @@ function stringLikeToString(value: unknown): string {
   if (value === null || value === undefined) {
     return ''
   }
-  if (typeof value === 'object' && typeof (value as any).toString === 'function') {
+  if (
+    typeof value === 'object' &&
+    typeof (value as any).toString === 'function'
+  ) {
     try {
       const str = (value as any).toString()
       if (typeof str === 'string') {
@@ -248,7 +284,14 @@ function parts256ToString(value: unknown, signed: boolean): string | null {
     if (hiHi < minI64 || hiHi > maxI64) {
       return null
     }
-    if (hiLo < 0n || hiLo > maxU64 || loHi < 0n || loHi > maxU64 || loLo < 0n || loLo > maxU64) {
+    if (
+      hiLo < 0n ||
+      hiLo > maxU64 ||
+      loHi < 0n ||
+      loHi > maxU64 ||
+      loLo < 0n ||
+      loLo > maxU64
+    ) {
       return null
     }
 
@@ -385,9 +428,10 @@ export function normalizeNode(
         kind: 'primitive',
         path,
         scType: 'bool',
-        value: typeof normalizedScVal.value === 'boolean'
-          ? normalizedScVal.value
-          : false,
+        value:
+          typeof normalizedScVal.value === 'boolean'
+            ? normalizedScVal.value
+            : false,
         raw: toRaw(scVal),
       } satisfies PrimitiveNode
     }
@@ -639,9 +683,7 @@ export function normalizeNode(
       const isTruncated = childCount < normalizedScVal.value.length
 
       // Pre-allocate the bounded result array.
-      const items: Array<Node> = new Array(
-        childCount + (isTruncated ? 1 : 0),
-      )
+      const items: Array<Node> = new Array(childCount + (isTruncated ? 1 : 0))
 
       // Use a bounded loop with per-item error handling.
       for (let i = 0; i < childCount; i++) {

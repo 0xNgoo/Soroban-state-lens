@@ -358,9 +358,9 @@ function isJsonSerializableValue(
     prototype !== null
   )
     return false
+  const values = Array.isArray(value) ? value : Object.values(value)
 
   ancestors.add(value)
-  const values = Array.isArray(value) ? value : Object.values(value)
   const valid = values.every((item) => isJsonSerializableValue(item, ancestors))
   ancestors.delete(value)
   return valid
@@ -423,8 +423,10 @@ export function sanitizeNetworkSnapshots(
     return { [normalizeNetworkScopeId(legacyNetworkId)]: legacySnapshots }
   }
 
-  const networkScoped: Record<string, Record<string, Array<ContractSnapshot>>> =
-    {}
+  const networkScoped: Record<
+    string,
+    Record<string, Array<ContractSnapshot>>
+  > = {}
   for (const [networkId, snapshots] of Object.entries(value)) {
     if (!isRecord(snapshots)) continue
     const validSnapshots = sanitizeSnapshots(snapshots)
