@@ -3,11 +3,13 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Button, Card, Heading } from '@stellar/design-system'
 import { VirtualizedTreeList } from '../../../components/explorer/VirtualizedTreeList'
 import { LoadingSkeleton } from '../../../components/explorer/LoadingSkeleton'
+import { LocalDemoNotice } from '../../../components/explorer/LocalDemoNotice'
 import {
   collectExpandableNodeIds,
   flattenTree,
 } from '../../../lib/tree/flattenTree'
 import { useContractLedgerPolling } from '../../../lib/network/useContractLedgerPolling'
+import { isSampleContractId } from '../../../lib/demoContract'
 import { ContractLoadStatus } from '../../../store/types'
 import { useLensStore, useSnapshots } from '../../../store/lensStore'
 import { validateContractRouteParam } from './-validateContractRouteParam'
@@ -324,6 +326,8 @@ function ContractExplorer() {
           {captureStatus}
         </p>
       )}
+
+      {isSampleContractId(contractId) && <LocalDemoNotice />}
 
       {contractLoadStatus === ContractLoadStatus.LOADING && <LoadingSkeleton />}
 

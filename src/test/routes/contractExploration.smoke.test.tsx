@@ -8,7 +8,8 @@ import { xdr } from '@stellar/stellar-sdk'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { routeTree } from '../../routeTree.gen'
-import { getStoreState, resetStore } from '../../store/lensStore'
+import { SAMPLE_CONTRACT_ID } from '../../lib/demoContract'
+import { getStoreState, resetStore, useLensStore } from '../../store/lensStore'
 import { ContractLoadStatus } from '../../store/types'
 import { createContractDataLedgerEntry } from '../helpers/ledgerEntryFixtures'
 
@@ -195,6 +196,7 @@ describe('contract exploration smoke flow', () => {
     expect(
       await screen.findByText('[owner, balance]', {}, { timeout: 10_000 }),
     ).toBeTruthy()
+    expect(screen.queryByRole('note')).toBeNull()
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -211,4 +213,36 @@ describe('contract exploration smoke flow', () => {
     expect(await screen.findByText('Raw XDR')).toBeTruthy()
     expect(screen.getByText('Metadata')).toBeTruthy()
   }, 15_000)
+
+  it('labels the sample explorer and keeps its entries local', async () => {
+    resetStore()
+    useLensStore.getState().upsertLedgerEntry({
+      key: `${SAMPLE_CONTRACT_ID}::ContractData::demo-key`,
+      contractId: SAMPLE_CONTRACT_ID,
+      type: 'ContractData',
+      value: 'demo value',
+      lastModifiedLedger: 42,
+    })
+
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: [`/contracts/${SAMPLE_CONTRACT_ID}/explorer`],
+      }),
+      context: {},
+    })
+    render(<RouterProvider router={router} />)
+
+    expect(
+      await screen.findByRole('note', {
+        name: 'Local demo data. Ledger numbers are illustrative.',
+      }),
+    ).toBeTruthy()
+    expect(
+      getStoreState().ledgerData[
+        `${SAMPLE_CONTRACT_ID}::ContractData::demo-key`
+      ].value,
+    ).toBe('demo value')
+    expect(mockGetLedgerEntries).not.toHaveBeenCalled()
+  })
 })
