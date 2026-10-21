@@ -11,7 +11,7 @@ interface MapLedgerEntriesParams {
   latestLedger?: number
   decodedValuesByKey?: Record<string, unknown>
   decodeErrorReasonsByKey?: Record<string, string>
-  keyInfoByKey?: Record<string, LedgerKeyInfo>
+  keyInfoByKey?: Partial<Record<string, LedgerKeyInfo>>
 }
 
 function decodeDurability(key: string): StoreLedgerEntry['durability'] {
@@ -19,6 +19,13 @@ function decodeDurability(key: string): StoreLedgerEntry['durability'] {
     const ledgerKey = xdr.LedgerKey.fromXDR(key, 'base64')
     if (ledgerKey.switch().name !== 'contractData') {
       return undefined
+    }
+
+    if (
+      ledgerKey.contractData().key().switch().name ===
+      'scvLedgerKeyContractInstance'
+    ) {
+      return 'Instance'
     }
 
     const durability = ledgerKey.contractData().durability().name
@@ -50,7 +57,8 @@ export function mapLedgerEntriesToStoreEntries(
   } = params
   const contractId = normalizeContractIdInput(params.contractId)
   return entries.map((entry) => {
-    const type = inferLedgerEntryType(entry.key)
+    const keyInfo = keyInfoByKey[entry.key]
+    const type = keyInfo?.type ?? 'Other'
     const durability = decodeDurability(entry.key)
     const last = entry.lastModifiedLedgerSeq
     const live = entry.liveUntilLedgerSeq
@@ -76,6 +84,7 @@ export function mapLedgerEntriesToStoreEntries(
       contractId,
       type,
       ...(durability ? { durability } : {}),
+      ...(keyInfo?.displayName ? { displayName: keyInfo.displayName } : {}),
       value:
         decodedValuesByKey[entry.key] !== undefined
           ? decodedValuesByKey[entry.key]

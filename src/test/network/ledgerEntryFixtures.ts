@@ -3,10 +3,11 @@ import { xdr } from '@stellar/stellar-sdk'
 export function makeContractDataFixture(
   label = 'counter',
   value = xdr.ScVal.scvU32(42),
+  durabilityName: 'persistent' | 'temporary' = 'persistent',
 ) {
   const contract = xdr.ScAddress.scAddressTypeContract(Buffer.alloc(32))
   const key = xdr.ScVal.scvSymbol(label)
-  const durability = xdr.ContractDataDurability.persistent()
+  const durability = xdr.ContractDataDurability[durabilityName]()
   const ledgerKey = xdr.LedgerKey.contractData(
     new xdr.LedgerKeyContractData({ contract, key, durability }),
   )

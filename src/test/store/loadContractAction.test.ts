@@ -1,24 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { xdr } from '@stellar/stellar-sdk'
 import { ContractLoadStatus } from '../../store/types'
-import {
-  makeAccountFixture,
-  makeContractCodeFixture,
-  makeContractDataFixture,
-} from '../network/ledgerEntryFixtures'
+import { makeContractDataFixture } from '../network/ledgerEntryFixtures'
 
 import type { GetLedgerEntriesResult } from '../../lib/network/getLedgerEntries'
-
-function makeTemporaryLedgerKey(): string {
-  const ledgerKey = xdr.LedgerKey.contractData(
-    new xdr.LedgerKeyContractData({
-      contract: xdr.ScAddress.scAddressTypeContract(Buffer.alloc(32)),
-      key: xdr.ScVal.scvSymbol('temporary-key'),
-      durability: xdr.ContractDataDurability.temporary(),
-    }),
-  )
-  return ledgerKey.toXDR('base64')
-}
 
 const mockGetLedgerEntries = vi.fn()
 const mockDecodeScVal = vi.fn()
@@ -51,13 +36,17 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
-    const temporaryKey = makeTemporaryLedgerKey()
+    const fixture = makeContractDataFixture(
+      'temporary-key',
+      xdr.ScVal.scvSymbol('decoded'),
+      'temporary',
+    )
 
     mockGetLedgerEntries.mockResolvedValue({
       entries: [
         {
-          key: temporaryKey,
-          xdr: 'xdr-1',
+          key: fixture.keyXdr,
+          xdr: fixture.entryXdr,
           lastModifiedLedgerSeq: 7,
           liveUntilLedgerSeq: 50,
         },
@@ -73,14 +62,14 @@ describe('loadContract action', () => {
       raw: { switch: 'ScvString', value: 'decoded' },
     })
 
-    await useLensStore.getState().loadContract('C1', ['rpc-key-1'])
+    await useLensStore.getState().loadContract('C1', [fixture.keyXdr])
 
     const state = getStoreState()
-    const loadedEntry = state.ledgerData[`C1::Other::${temporaryKey}`]
+    const loadedEntry = state.ledgerData[`C1::ContractData::${fixture.keyXdr}`]
     expect(state.activeContractId).toBe('C1')
     expect(state.contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
     expect(Object.keys(state.ledgerData)).toHaveLength(1)
-    expect(loadedEntry.rawXdr).toBe('xdr-1')
+    expect(loadedEntry.rawXdr).toBe(fixture.entryXdr)
     expect(loadedEntry.durability).toBe('Temporary')
     expect(loadedEntry.expired).toBe(true)
     expect(loadedEntry.value).toMatchObject({
@@ -92,8 +81,6 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
-    const fixture = makeContractDataFixture('decode-error')
-
     mockGetLedgerEntries.mockResolvedValue({
       entries: [],
       latestLedger: 100,
@@ -117,20 +104,21 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
-    const failedFixture = makeContractDataFixture('failed')
-    const validFixture = makeContractDataFixture('valid')
+    const oldFixture = makeContractDataFixture('old-key')
+    const otherFixture = makeContractDataFixture('other-key')
+    const newFixture = makeContractDataFixture('new-key')
 
     mockGetLedgerEntries
       .mockResolvedValueOnce({
-        entries: [{ key: 'old-key', xdr: 'old-xdr' }],
+        entries: [{ key: oldFixture.keyXdr, xdr: oldFixture.entryXdr }],
         latestLedger: 1,
       })
       .mockResolvedValueOnce({
-        entries: [{ key: 'other-key', xdr: 'other-xdr' }],
+        entries: [{ key: otherFixture.keyXdr, xdr: otherFixture.entryXdr }],
         latestLedger: 2,
       })
       .mockResolvedValueOnce({
-        entries: [{ key: 'new-key', xdr: 'new-xdr' }],
+        entries: [{ key: newFixture.keyXdr, xdr: newFixture.entryXdr }],
         latestLedger: 3,
       })
     mockDecodeScVal.mockResolvedValue({
@@ -141,14 +129,18 @@ describe('loadContract action', () => {
       raw: { switch: 'ScvString', value: 'decoded' },
     })
 
-    await useLensStore.getState().loadContract('C1', ['old-key'])
-    await useLensStore.getState().loadContract('C2', ['other-key'])
-    await useLensStore.getState().loadContract('C1', ['new-key'])
+    await useLensStore.getState().loadContract('C1', [oldFixture.keyXdr])
+    await useLensStore.getState().loadContract('C2', [otherFixture.keyXdr])
+    await useLensStore.getState().loadContract('C1', [newFixture.keyXdr])
 
     const ledgerData = getStoreState().ledgerData
-    expect(ledgerData['C1::Other::old-key']).toBeUndefined()
-    expect(ledgerData['C1::Other::new-key'].rawXdr).toBe('new-xdr')
-    expect(ledgerData['C2::Other::other-key'].rawXdr).toBe('other-xdr')
+    expect(ledgerData[`C1::ContractData::${oldFixture.keyXdr}`]).toBeUndefined()
+    expect(ledgerData[`C1::ContractData::${newFixture.keyXdr}`].rawXdr).toBe(
+      newFixture.entryXdr,
+    )
+    expect(ledgerData[`C2::ContractData::${otherFixture.keyXdr}`].rawXdr).toBe(
+      otherFixture.entryXdr,
+    )
   })
 
   it('sets ERROR when load fails', async () => {
@@ -208,46 +200,54 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
+    const goodFixture = makeContractDataFixture('good-key')
+    const badFixture = makeContractDataFixture('bad-key')
 
     mockGetLedgerEntries.mockResolvedValue({
       entries: [
-        { key: 'good-key', xdr: 'good-xdr', lastModifiedLedgerSeq: 5 },
-        { key: 'bad-key', xdr: 'bad-xdr', lastModifiedLedgerSeq: 6 },
+        {
+          key: goodFixture.keyXdr,
+          xdr: goodFixture.entryXdr,
+          lastModifiedLedgerSeq: 5,
+        },
+        { key: badFixture.keyXdr, xdr: 'bad-xdr', lastModifiedLedgerSeq: 6 },
       ],
       latestLedger: 6,
     })
 
-    mockDecodeScVal
-      .mockResolvedValueOnce({
-        kind: 'primitive',
-        path: [],
-        scType: 'string',
-        value: 'decoded',
-        raw: { switch: 'ScvString', value: 'decoded' },
-      })
-      .mockResolvedValueOnce({
-        code: 'DECODE_FAILED',
-        message: 'Failed to decode ScVal XDR: malformed',
-      })
+    mockDecodeScVal.mockResolvedValue({
+      kind: 'primitive',
+      path: [],
+      scType: 'u32',
+      value: 42,
+      raw: { switch: 'ScvU32', value: 42 },
+    })
 
-    await useLensStore.getState().loadContract('C_RAW', ['rpc-good', 'rpc-bad'])
+    await useLensStore
+      .getState()
+      .loadContract('C_RAW', [goodFixture.keyXdr, badFixture.keyXdr])
 
     const state = getStoreState()
     expect(state.contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
-    expect(state.ledgerData['C_RAW::Other::good-key'].value).toEqual({
+    expect(
+      state.ledgerData[`C_RAW::ContractData::${goodFixture.keyXdr}`].value,
+    ).toEqual({
       kind: 'primitive',
       path: [],
-      scType: 'string',
-      value: 'decoded',
-      raw: { switch: 'ScvString', value: 'decoded' },
+      scType: 'u32',
+      value: 42,
+      raw: { switch: 'ScvU32', value: 42 },
     })
-    expect(state.ledgerData['C_RAW::Other::bad-key'].value).toEqual({
+    expect(
+      state.ledgerData[`C_RAW::ContractData::${badFixture.keyXdr}`].value,
+    ).toEqual({
       kind: 'raw-xdr',
       xdr: 'bad-xdr',
     })
-    expect(state.ledgerData['C_RAW::Other::bad-key'].decodeErrorReason).toBe(
-      'Failed to decode ScVal XDR: malformed',
-    )
+    expect(
+      state.ledgerData[`C_RAW::ContractData::${badFixture.keyXdr}`]
+        .decodeErrorReason,
+    ).toBe('invalid-ledger-entry-data')
   })
 
   it('ignores stale in-flight results and keeps newest response', async () => {
@@ -332,6 +332,9 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
+    const oldFixture = makeContractDataFixture('old-batch')
+    const middleFixture = makeContractDataFixture('middle-batch')
+    const latestFixture = makeContractDataFixture('latest-batch')
 
     let resolveFirstDecode: ((value: unknown) => void) | undefined
     const firstDecode = new Promise<unknown>((resolve) => {
@@ -364,20 +367,28 @@ describe('loadContract action', () => {
       })
       .mockResolvedValueOnce({
         entries: [
-          { key: 'middle-key', xdr: 'middle-xdr', lastModifiedLedgerSeq: 2 },
+          {
+            key: middleFixture.keyXdr,
+            xdr: middleFixture.entryXdr,
+            lastModifiedLedgerSeq: 2,
+          },
         ],
         latestLedger: 2,
       })
       .mockResolvedValueOnce({
         entries: [
-          { key: 'latest-key', xdr: 'latest-xdr', lastModifiedLedgerSeq: 3 },
+          {
+            key: latestFixture.keyXdr,
+            xdr: latestFixture.entryXdr,
+            lastModifiedLedgerSeq: 3,
+          },
         ],
         latestLedger: 3,
       })
 
     const firstCall = useLensStore
       .getState()
-      .loadContract('C_DECODE_STALE', ['old'])
+      .loadContract('C_DECODE_STALE', [oldFixture.keyXdr])
     for (
       let attempt = 0;
       attempt < 10 && !firstWorker.decodeScVal.mock.calls.length;
@@ -388,10 +399,10 @@ describe('loadContract action', () => {
 
     const middleCall = useLensStore
       .getState()
-      .loadContract('C_DECODE_STALE', ['middle'])
+      .loadContract('C_DECODE_STALE', [middleFixture.keyXdr])
     const latestCall = useLensStore
       .getState()
-      .loadContract('C_DECODE_STALE', ['latest'])
+      .loadContract('C_DECODE_STALE', [latestFixture.keyXdr])
     for (
       let attempt = 0;
       attempt < 10 && mockGetLedgerEntries.mock.calls.length < 3;
@@ -414,14 +425,19 @@ describe('loadContract action', () => {
 
     const state = getStoreState()
     expect(state.contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
-    expect(latestWorker.decodeScVal).toHaveBeenCalledWith({ xdr: 'latest-xdr' })
+    expect(latestWorker.decodeScVal).toHaveBeenCalledWith({
+      xdr: latestFixture.valueXdr,
+    })
     expect(latestWorker.decodeScVal).toHaveBeenCalledTimes(1)
-    expect(state.ledgerData['C_DECODE_STALE::Other::latest-key'].rawXdr).toBe(
-      'latest-xdr',
-    )
-    expect(state.ledgerData['C_DECODE_STALE::Other::old-key']).toBeUndefined()
     expect(
-      state.ledgerData['C_DECODE_STALE::Other::middle-key'],
+      state.ledgerData[`C_DECODE_STALE::ContractData::${latestFixture.keyXdr}`]
+        .rawXdr,
+    ).toBe(latestFixture.entryXdr)
+    expect(
+      state.ledgerData[`C_DECODE_STALE::ContractData::${oldFixture.keyXdr}`],
+    ).toBeUndefined()
+    expect(
+      state.ledgerData[`C_DECODE_STALE::ContractData::${middleFixture.keyXdr}`],
     ).toBeUndefined()
   })
 
@@ -469,7 +485,9 @@ describe('loadContract action', () => {
         }),
       )
 
-      const loadPromise = useLensStore.getState().loadContract('C1', ['rpc-key-1'])
+      const loadPromise = useLensStore
+        .getState()
+        .loadContract('C1', ['rpc-key-1'])
       await useLensStore.getState().refreshActiveKeys()
 
       expect(mockGetLedgerEntries).toHaveBeenCalledTimes(1)
@@ -481,9 +499,8 @@ describe('loadContract action', () => {
     })
 
     it('emits sequence changes and counts fetches correctly on refresh', async () => {
-      const { resetStore, getStoreState, useLensStore } = await import(
-        '../../store/lensStore'
-      )
+      const { resetStore, getStoreState, useLensStore } =
+        await import('../../store/lensStore')
       resetStore()
 
       useLensStore.setState({
@@ -547,6 +564,8 @@ describe('loadContract action', () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
     resetStore()
+    const firstFixture = makeContractDataFixture('first-key')
+    const secondFixture = makeContractDataFixture('second-key')
 
     const failedWorker = {
       decodeScVal: vi
@@ -567,23 +586,27 @@ describe('loadContract action', () => {
       .mockImplementationOnce(() => Promise.resolve(recoveredWorker))
     mockGetLedgerEntries.mockResolvedValue({
       entries: [
-        { key: 'first-key', xdr: 'first-xdr' },
-        { key: 'second-key', xdr: 'second-xdr' },
+        { key: firstFixture.keyXdr, xdr: firstFixture.entryXdr },
+        { key: secondFixture.keyXdr, xdr: secondFixture.entryXdr },
       ],
       latestLedger: 2,
     })
 
     await useLensStore
       .getState()
-      .loadContract('C_RECOVER', ['first-key', 'second-key'])
+      .loadContract('C_RECOVER', [firstFixture.keyXdr, secondFixture.keyXdr])
 
     const { ledgerData, contractLoadStatus } = getStoreState()
     expect(contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
-    expect(ledgerData['C_RECOVER::Other::first-key']).toMatchObject({
-      value: { kind: 'raw-xdr', xdr: 'first-xdr' },
+    expect(
+      ledgerData[`C_RECOVER::ContractData::${firstFixture.keyXdr}`],
+    ).toMatchObject({
+      value: { kind: 'raw-xdr', xdr: firstFixture.entryXdr },
       decodeErrorReason: 'Decoder worker stopped',
     })
-    expect(ledgerData['C_RECOVER::Other::second-key'].value).toMatchObject({
+    expect(
+      ledgerData[`C_RECOVER::ContractData::${secondFixture.keyXdr}`].value,
+    ).toMatchObject({
       value: 'recovered',
     })
     expect(mockCreateDecoderWorkerSafe).toHaveBeenCalledTimes(2)
