@@ -287,12 +287,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function sanitizeSnapshotLedgerData(
   value: unknown,
   contractId: string,
-): Record<string, LedgerEntry> {
-  if (!isRecord(value)) return {}
+): { entries: Record<string, LedgerEntry>; rejectedEntries: number } {
+  if (!isRecord(value)) return { entries: {}, rejectedEntries: 1 }
 
   const entries: Record<string, LedgerEntry> = {}
+  let rejectedEntries = 0
   for (const [key, item] of Object.entries(value)) {
-    if (!isRecord(item)) continue
+    if (!isRecord(item)) {
+      rejectedEntries++
+      continue
+    }
 
     const validType =
       item.type === 'ContractData' ||
@@ -324,6 +328,7 @@ function sanitizeSnapshotLedgerData(
       ('decodeErrorReason' in item &&
         typeof item.decodeErrorReason !== 'string')
     ) {
+      rejectedEntries++
       continue
     }
 
@@ -345,7 +350,7 @@ function sanitizeSnapshotLedgerData(
         : {}),
     }
   }
-  return entries
+  return { entries, rejectedEntries }
 }
 
 function isJsonSerializableValue(
@@ -403,12 +408,19 @@ export function sanitizeSnapshots(
       }
 
       const label = typeof item.label === 'string' ? item.label : undefined
+      const sanitizedLedgerData = sanitizeSnapshotLedgerData(
+        item.ledgerData,
+        contractId,
+      )
       validSnapshots.push({
         id: item.id,
         contractId,
         timestamp: item.timestamp,
         ledgerSequence: item.ledgerSequence,
-        ledgerData: sanitizeSnapshotLedgerData(item.ledgerData, contractId),
+        ledgerData: sanitizedLedgerData.entries,
+        ...(item.incomplete === true || sanitizedLedgerData.rejectedEntries > 0
+          ? { incomplete: true }
+          : {}),
         ...(label === undefined ? {} : { label }),
       })
     }

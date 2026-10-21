@@ -98,6 +98,7 @@ export interface ContractSnapshot {
   timestamp: number
   ledgerSequence: number
   ledgerData: Record<string, LedgerEntry>
+  incomplete?: boolean
   label?: string
 }
 

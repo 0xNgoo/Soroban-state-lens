@@ -199,7 +199,12 @@ describe('Sidebar History Panel', () => {
     const state = useLensStore.getState()
     state.setActiveContractId('c1')
     state.addSnapshot('c1', { key: makeEntry('key', 'c1', 'same') }, 1, 'Older')
-    state.addSnapshot('c1', { key: makeEntry('key', 'c1', 'same') }, 2, 'Middle')
+    state.addSnapshot(
+      'c1',
+      { key: makeEntry('key', 'c1', 'same') },
+      2,
+      'Middle',
+    )
     state.addSnapshot(
       'c1',
       { key: makeEntry('key', 'c1', 'changed') },
@@ -227,5 +232,47 @@ describe('Sidebar History Panel', () => {
     expect(screen.getAllByText('Middle').length).toBeGreaterThan(0)
     expect(screen.getByText('~0')).toBeTruthy()
     expect(screen.getByText('1')).toBeTruthy()
+  })
+
+  it('blocks comparison and export when either selected snapshot is incomplete', () => {
+    const state = useLensStore.getState()
+    state.setActiveContractId('c1')
+    state.addSnapshot(
+      'c1',
+      { key: makeEntry('key', 'c1', 'before') },
+      1,
+      'Damaged',
+    )
+    state.addSnapshot(
+      'c1',
+      { key: makeEntry('key', 'c1', 'after') },
+      2,
+      'Valid',
+    )
+    const networkId = state.networkConfig.networkId
+    const snapshots = useLensStore
+      .getState()
+      .getSnapshots('c1')
+      .map((snapshot, index) =>
+        index === 0 ? { ...snapshot, incomplete: true } : snapshot,
+      )
+    useLensStore.setState((current) => ({
+      snapshots: {
+        ...current.snapshots,
+        [networkId]: { ...current.snapshots[networkId], c1: snapshots },
+      },
+    }))
+
+    render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="history" />)
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Damaged has rejected entries. Recapture this snapshot before comparing.',
+    )
+    expect(screen.queryByText('~0')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: 'Download snapshot diff as JSON' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
   })
 })
