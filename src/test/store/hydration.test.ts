@@ -4,6 +4,7 @@ import {
   NETWORK_CONFIG_STORAGE_KEY,
   clearPersistedNetworkConfig,
   mergeNetworkConfig,
+  sanitizeSnapshots,
 } from '../../store/persistence'
 import { DEFAULT_NETWORKS } from '../../store/types'
 
@@ -83,6 +84,32 @@ describe('LensStore Hydration', () => {
     await useLensStore.persist.rehydrate()
 
     expect(useLensStore.getState().getSnapshots('C1')).toEqual([validSnapshot])
+  })
+
+  it('marks snapshots with rejected entries incomplete and preserves valid empty snapshots', () => {
+    const sanitized = sanitizeSnapshots({
+      C1: [
+        {
+          id: 'damaged',
+          contractId: 'C1',
+          timestamp: Date.now() - 1,
+          ledgerSequence: 10,
+          ledgerData: { rejected: { key: 'wrong-key' } },
+        },
+        {
+          id: 'empty',
+          contractId: 'C1',
+          timestamp: Date.now() - 1,
+          ledgerSequence: 11,
+          ledgerData: {},
+        },
+      ],
+    })
+
+    expect(sanitized.C1[0]).toMatchObject({ id: 'damaged', incomplete: true })
+    expect(sanitized.C1[0]?.ledgerData).toEqual({})
+    expect(sanitized.C1[1]).not.toHaveProperty('incomplete')
+    expect(sanitized.C1[1]?.ledgerData).toEqual({})
   })
 
   it('persists snapshots and restores them after a store reload', async () => {
