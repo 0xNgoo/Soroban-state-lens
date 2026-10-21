@@ -152,6 +152,35 @@ describe('mapLedgerEntriesToStoreEntries', () => {
     ])
   })
 
+  it('classifies contract data from LedgerKey XDR and retains its raw key', () => {
+    const contract = xdr.ScAddress.scAddressTypeContract(new Uint8Array(32))
+    const ledgerKey = xdr.LedgerKey.contractData(
+      new xdr.LedgerKeyContractData({
+        contract,
+        key: xdr.ScVal.scvSymbol('temporary-key'),
+        durability: xdr.ContractDataDurability.temporary(),
+      }),
+    )
+    const keyXdr = ledgerKey.toXDR('base64')
+
+    const [entry] = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_TEMP',
+      entries: [{ key: keyXdr, xdr: 'entry-xdr' }],
+    })
+
+    expect(entry).toMatchObject({
+      key: `CONTRACT_TEMP::ContractData::${keyXdr}`,
+      type: 'ContractData',
+      durability: 'Temporary',
+      canonicalKey: keyXdr,
+    })
+    expect(
+      xdr.LedgerKey.fromXDR(entry.canonicalKey ?? '', 'base64')
+        .toXDR()
+        .toString('hex'),
+    ).toBe(ledgerKey.toXDR().toString('hex'))
+  })
+
   it('maps multiple entries deterministically', () => {
     const result = mapLedgerEntriesToStoreEntries({
       contractId: 'CONTRACT_3',

@@ -210,6 +210,7 @@ function ContractExplorer() {
             id: entry.key,
             label: entry.displayKey ?? entry.displayName ?? entry.key,
             canonicalKey: entry.canonicalKey,
+            durability: entry.durability,
             node: entry.value,
             expired: entry.expired,
           },
