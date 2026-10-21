@@ -1,10 +1,15 @@
 import { xdr } from '@stellar/stellar-sdk'
 import { normalizeContractIdInput } from '../validation/normalizeContractIdInput'
 import { makeLedgerEntryKey } from '../storage/makeLedgerEntryKey'
+import { formatStorageKeyPreview } from '../format/formatStorageKeyPreview'
 import { decodeLedgerKeyInfo } from './decodeLedgerEntry'
-import type { LedgerKeyInfo } from './decodeLedgerEntry'
+import type {
+  DecodedLedgerEntryMetadata,
+  LedgerKeyInfo,
+} from './decodeLedgerEntry'
 import type { LedgerEntry as RpcLedgerEntry } from './getLedgerEntries'
 import type { LedgerEntry as StoreLedgerEntry } from '../../store/types'
+import type { Node } from '../../types/node'
 
 interface MapLedgerEntriesParams {
   contractId: string
@@ -13,6 +18,8 @@ interface MapLedgerEntriesParams {
   decodedValuesByKey?: Record<string, unknown>
   decodeErrorReasonsByKey?: Record<string, string>
   keyInfoByKey?: Partial<Record<string, LedgerKeyInfo>>
+  metadataByKey?: Partial<Record<string, DecodedLedgerEntryMetadata>>
+  decodedStorageKeysByKey?: Partial<Record<string, Node>>
 }
 
 function decodeDurability(key: string): StoreLedgerEntry['durability'] {
@@ -55,17 +62,21 @@ export function mapLedgerEntriesToStoreEntries(
     decodedValuesByKey = {},
     decodeErrorReasonsByKey = {},
     keyInfoByKey = {},
+    metadataByKey = {},
+    decodedStorageKeysByKey = {},
   } = params
   const contractId = normalizeContractIdInput(params.contractId)
   return entries.map((entry) => {
     const keyInfo = keyInfoByKey[entry.key]
     const decodedKeyInfo = decodeLedgerKeyInfo(entry.key)
+    const metadata = metadataByKey[entry.key]
     const type =
       decodedKeyInfo.type !== 'Other'
         ? decodedKeyInfo.type
-        : (keyInfo?.type ?? decodedKeyInfo.type)
+        : (keyInfo?.type ?? metadata?.type ?? decodedKeyInfo.type)
     const displayName = decodedKeyInfo.displayName ?? keyInfo?.displayName
     const durability = decodeDurability(entry.key)
+    const decodedStorageKey = decodedStorageKeysByKey[entry.key]
     const last = entry.lastModifiedLedgerSeq
     const live = entry.liveUntilLedgerSeq
 
@@ -91,6 +102,10 @@ export function mapLedgerEntriesToStoreEntries(
       type,
       ...(durability ? { durability } : {}),
       ...(displayName ? { displayName } : {}),
+      canonicalKey: entry.key,
+      ...(decodedStorageKey
+        ? { displayKey: formatStorageKeyPreview(decodedStorageKey) }
+        : {}),
       value:
         decodedValuesByKey[entry.key] !== undefined
           ? decodedValuesByKey[entry.key]

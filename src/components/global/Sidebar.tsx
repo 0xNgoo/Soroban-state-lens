@@ -10,12 +10,22 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { downloadSnapshotDiff } from '../../lib/diff/exportSnapshotDiff'
 import { resolveDiffStatus } from '../../lib/diff/resolveDiffStatus'
 import { formatContractIdShort } from '../../lib/format/formatContractIdShort'
 import { formatLedgerSequence } from '../../lib/format/formatLedgerSequence'
 import { useLensStore, useSnapshots } from '../../store/lensStore'
+import {
+  getSnapshotPersistenceFailed,
+  subscribeToSnapshotPersistence,
+} from '../../store/persistenceStatus'
 import type { LedgerEntry } from '../../store/types'
 
 interface SidebarProps {
@@ -337,6 +347,11 @@ export default function Sidebar({
 function HistoryPanel() {
   const activeContractId = useLensStore((state) => state.activeContractId)
   const snapshots = useSnapshots(activeContractId ?? '')
+  const snapshotPersistenceFailed = useSyncExternalStore(
+    subscribeToSnapshotPersistence,
+    getSnapshotPersistenceFailed,
+    getSnapshotPersistenceFailed,
+  )
 
   const addSnapshot = useLensStore((state) => state.addSnapshot)
   const removeSnapshot = useLensStore((state) => state.removeSnapshot)
@@ -504,6 +519,15 @@ function HistoryPanel() {
       >
         {captureStatus ?? ''}
       </p>
+      {snapshotPersistenceFailed && snapshots.length > 0 && (
+        <p
+          role="alert"
+          className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200"
+        >
+          Snapshot changes are in memory, but browser storage failed. Reloading
+          will discard them.
+        </p>
+      )}
       {hasInsufficient ? (
         // Empty State / Capture First View
         <div className="flex flex-col gap-4 p-4 bg-surface-dark/45 border border-border-dark/60 rounded-xl relative overflow-hidden group">
