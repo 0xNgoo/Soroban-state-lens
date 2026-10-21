@@ -3,8 +3,14 @@ import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 
 import { deepClone } from '../lib/deepClone'
+import { isSampleContractId } from '../lib/demoContract'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
+import {
+  decodeLedgerEntryMetadata,
+  decodeLedgerKeyInfo,
+} from '../lib/network/decodeLedgerEntry'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
+import { isContractId } from '../lib/validation/isContractId'
 import { normalizeContractIdInput } from '../lib/validation/normalizeContractIdInput'
 import {
   isDecoderWorkerError,
@@ -37,6 +43,7 @@ import {
 
 import type * as Comlink from 'comlink'
 import type { DecoderWorkerApi } from '../types/decoder-worker'
+import type { Node } from '../types/node'
 import type { PersistedState } from './persistence'
 import type {
   ContractLoadSlice,
@@ -510,6 +517,11 @@ const createContractLoadSlice = (
       const { signal } = controller
       const isRequestStale = () =>
         currentRequestId !== requestId || signal.aborted
+      // Defense in depth (SSL#733): a direct loadContract(live) without a
+      // preceding setActiveContractId(live) must not retain demo records.
+      if (!isSampleContractId(contractId)) {
+        get().clearDemoRecords()
+      }
       set(() => ({
         activeContractId: contractId,
         contractLoadStatus: ContractLoadStatus.LOADING,
@@ -537,7 +549,17 @@ const createContractLoadSlice = (
         }
 
         const decodedValuesByKey: Record<string, unknown> = {}
+        const decodedStorageKeysByKey: Partial<Record<string, Node>> = {}
         const decodeErrorReasonsByKey: Record<string, string> = {}
+        const metadataByKey: Record<
+          string,
+          ReturnType<typeof decodeLedgerEntryMetadata>
+        > = {}
+        const keyInfoByKey: Record<
+          string,
+          ReturnType<typeof decodeLedgerKeyInfo>
+        > = {}
+        const foreignContractKeys = new Set<string>()
         let workerUnavailableReason: string | null = null
 
         const decodeBatch = async () => {
@@ -547,6 +569,59 @@ const createContractLoadSlice = (
             for (const entry of entries) {
               if (isRequestStale()) {
                 return
+              }
+
+              const keyInfo = decodeLedgerKeyInfo(entry.key)
+              keyInfoByKey[entry.key] = keyInfo
+              if (keyInfo.type !== 'ContractData') {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
+                continue
+              }
+
+              if (
+                keyInfo.contractId &&
+                isContractId(contractId) &&
+                keyInfo.contractId !== contractId
+              ) {
+                foreignContractKeys.add(entry.key)
+                continue
+              }
+
+              let metadata: ReturnType<typeof decodeLedgerEntryMetadata>
+              try {
+                metadata = decodeLedgerEntryMetadata(entry)
+              } catch {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
+                decodeErrorReasonsByKey[entry.key] = 'invalid-ledger-entry-data'
+                continue
+              }
+
+              if (
+                metadata.contractId &&
+                isContractId(contractId) &&
+                metadata.contractId !== contractId
+              ) {
+                foreignContractKeys.add(entry.key)
+                continue
+              }
+
+              metadataByKey[entry.key] = metadata
+              if (
+                metadata.type !== 'ContractData' ||
+                metadata.storageKeyXdr === undefined ||
+                metadata.valueXdr === undefined
+              ) {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
+                continue
               }
 
               if (
@@ -575,8 +650,20 @@ const createContractLoadSlice = (
               }
 
               try {
+                const decodedStorageKey = await activeDecoderWorker.decodeScVal(
+                  {
+                    xdr: metadata.storageKeyXdr,
+                  },
+                )
+                if (isRequestStale()) {
+                  return
+                }
+                if (!isDecoderWorkerError(decodedStorageKey)) {
+                  decodedStorageKeysByKey[entry.key] = decodedStorageKey
+                }
+
                 const result = await activeDecoderWorker.decodeScVal({
-                  xdr: entry.xdr,
+                  xdr: metadata.valueXdr,
                 })
                 if (isRequestStale()) {
                   return
@@ -626,17 +713,24 @@ const createContractLoadSlice = (
 
         const mappedEntries = mapLedgerEntriesToStoreEntries({
           contractId,
-          entries,
+          entries: entries.filter(
+            (entry) => !foreignContractKeys.has(entry.key),
+          ),
           latestLedger,
           decodedValuesByKey,
+          decodedStorageKeysByKey,
           decodeErrorReasonsByKey,
+          keyInfoByKey,
+          metadataByKey,
         })
 
         set((state) => ({
           ledgerData: {
             ...Object.fromEntries(
               Object.entries(state.ledgerData).filter(
-                ([, entry]) => entry.contractId !== contractId,
+                ([, entry]) =>
+                  isSampleContractId(contractId) ||
+                  entry.contractId !== contractId,
               ),
             ),
             ...Object.fromEntries(

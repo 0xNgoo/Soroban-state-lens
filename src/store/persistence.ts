@@ -3,6 +3,7 @@ import { parsePersistedNetworkConfig } from '../lib/storage/parsePersistedNetwor
 import { serializePersistedNetworkConfig } from '../lib/storage/serializePersistedNetworkConfig'
 import { validateNetworkConfigPatch } from './validateNetworkConfigPatch'
 import { normalizeNetworkScopeId } from './networkScope'
+import { setSnapshotPersistenceFailed } from './persistenceStatus'
 import {
   BigIntDisplayMode,
   ByteDisplayMode,
@@ -175,7 +176,13 @@ const safeLocalStorage = {
         return
       }
       localStorage.setItem(name, value)
+      if (name === NETWORK_CONFIG_STORAGE_KEY) {
+        setSnapshotPersistenceFailed(false)
+      }
     } catch {
+      if (name === NETWORK_CONFIG_STORAGE_KEY) {
+        setSnapshotPersistenceFailed(true)
+      }
       console.warn(`[LensStore] Failed to write to localStorage: ${name}`)
     }
   },

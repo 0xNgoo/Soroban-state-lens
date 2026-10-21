@@ -152,23 +152,35 @@ export function DiscoveryStateView({
 
   if (state.status === 'error') {
     return (
-      <Card>
-        <div className="p-6 space-y-4 border border-red-500/20 bg-red-500/5 rounded-xl">
-          <Heading size="sm" as="h3" className="text-red-300">
-            Discovery failed
-          </Heading>
-          <p className="text-text-muted text-sm">
-            {state.error ?? 'An unknown error occurred while discovering keys.'}
-          </p>
-          {onRetry && (
-            <div>
-              <Button variant="secondary" size="sm" onClick={handleRetry}>
-                Retry
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+      <>
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          Discovery failed:{' '}
+          {state.error ?? 'An unknown error occurred while discovering keys.'}
+        </p>
+        <Card>
+          <div className="p-6 space-y-4 border border-red-500/20 bg-red-500/5 rounded-xl">
+            <Heading size="sm" as="h3" className="text-red-300">
+              Discovery failed
+            </Heading>
+            <p className="text-text-muted text-sm">
+              {state.error ??
+                'An unknown error occurred while discovering keys.'}
+            </p>
+            {onRetry && (
+              <div>
+                <Button variant="secondary" size="sm" onClick={handleRetry}>
+                  Retry
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      </>
     )
   }
 
