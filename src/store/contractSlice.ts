@@ -19,12 +19,15 @@ export const createContractSlice = (
   setActiveContractId: (id: string) =>
     set((state) => ({
       activeContractId: id,
-      ...(id !== state.activeContractId ? { selectedKeyPath: null } : {}),
+      ...(id !== state.activeContractId
+        ? { selectedKeyPath: null }
+        : {}),
     })),
 
   clearActiveContractId: () =>
     set(() => ({
       activeContractId: null,
+      selectedKeyPath: null,
     })),
 
   setSelectedKeyPath: (keyPath: string) =>

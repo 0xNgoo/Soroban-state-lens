@@ -1,5 +1,10 @@
+import { useState } from 'react'
+import { formatScBytesByPreference } from '../../lib/format/formatScBytesByPreference'
+import { formatScIntegerByPreference } from '../../lib/format/formatScIntegerByPreference'
+import { useLensStore } from '../../store/lensStore'
+import type { BigIntDisplayMode, ByteDisplayMode } from '../../store/types'
+import type { KeyboardEvent, MouseEvent, Ref } from 'react'
 import type { FlatTreeRow } from '../../lib/tree/flatTreeRow'
-import type { KeyboardEvent, Ref } from 'react'
 
 interface TreeRowProps {
   row: FlatTreeRow
@@ -14,27 +19,83 @@ interface TreeRowProps {
   onFocus?: () => void
 }
 
-function formatPreview(row: FlatTreeRow): string {
+function formatPreview(
+  row: FlatTreeRow,
+  byteDisplayMode: ByteDisplayMode,
+  bigIntDisplayMode: BigIntDisplayMode,
+): string {
   switch (row.node.kind) {
-    case 'primitive':
+    case 'primitive': {
+      if (row.node.scType === 'bytes' && Array.isArray(row.node.value)) {
+        return formatScBytesByPreference(row.node.value, byteDisplayMode)
+      }
+
+      if (
+        row.node.scType === 'u64' ||
+        row.node.scType === 'i64' ||
+        row.node.scType === 'timepoint' ||
+        row.node.scType === 'duration' ||
+        row.node.scType === 'u128' ||
+        row.node.scType === 'i128' ||
+        row.node.scType === 'u256' ||
+        row.node.scType === 'i256'
+      ) {
+        return formatScIntegerByPreference(
+          row.node.value as string,
+          bigIntDisplayMode,
+        )
+      }
+
       return String(row.node.value)
+    }
     case 'address':
       return row.node.value
     case 'error':
       return `${row.node.errorType}:${row.node.code}`
     case 'map':
-      return `${row.node.entries.length} entries`
+      return formatCollectionPreview(
+        row.node.entries.length -
+          (row.node.omittedChildren !== undefined &&
+          row.node.entries.at(-1)?.key.kind === 'truncated'
+            ? 1
+            : 0),
+        'entries',
+        row.node.childLimit,
+        row.node.omittedChildren,
+      )
     case 'vec':
-      return `${row.node.items.length} items`
+      return formatCollectionPreview(
+        row.node.items.length -
+          (row.node.omittedChildren !== undefined &&
+          row.node.items.at(-1)?.kind === 'truncated'
+            ? 1
+            : 0),
+        'items',
+        row.node.childLimit,
+        row.node.omittedChildren,
+      )
     case 'unsupported':
       return row.node.variant
     case 'truncated':
-      return `depth=${row.node.depth}`
+      return `truncated at depth=${row.node.depth}`
     case 'cycle':
-      return `depth=${row.node.depth}`
+      return `cycle detected at depth=${row.node.depth}`
     default:
       return ''
   }
+}
+
+function formatCollectionPreview(
+  count: number,
+  label: string,
+  childLimit?: number,
+  omittedChildren?: number,
+): string {
+  if (childLimit === undefined || omittedChildren === undefined) {
+    return `${count} ${label}`
+  }
+
+  return `${count} ${label} (limit ${childLimit}, ${omittedChildren} omitted)`
 }
 
 function typeBadge(row: FlatTreeRow): string {
@@ -61,6 +122,30 @@ export function TreeRow({
   onKeyNavigate,
   onFocus,
 }: TreeRowProps) {
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>(
+    'idle',
+  )
+  const byteDisplayMode = useLensStore(
+    (state) => state.preferences.byteDisplayMode,
+  )
+  const bigIntDisplayMode = useLensStore(
+    (state) => state.preferences.bigIntDisplayMode,
+  )
+
+  const handleCopyCanonicalKey = async (
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation()
+    if (!row.canonicalKey) return
+
+    try {
+      await navigator.clipboard.writeText(row.canonicalKey)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('failed')
+    }
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
@@ -83,7 +168,7 @@ export function TreeRow({
   return (
     <div
       ref={rowRef}
-      role="button"
+      role="treeitem"
       tabIndex={tabIndex}
       data-testid="tree-row"
       onClick={() => onActivate?.(row)}
@@ -94,8 +179,14 @@ export function TreeRow({
       }`}
       style={{ height: rowHeight }}
       aria-label={`Open ${row.label}`}
+      aria-level={row.depth + 1}
+      aria-selected={isSelected}
+      aria-expanded={row.hasChildren ? isExpanded : undefined}
     >
-      <div style={{ marginLeft: row.depth * 16 }} className="flex items-center gap-2 min-w-0">
+      <div
+        style={{ marginLeft: row.depth * 16 }}
+        className="flex items-center gap-2 min-w-0"
+      >
         {row.hasChildren ? (
           <button
             type="button"
@@ -112,14 +203,42 @@ export function TreeRow({
           <span className="w-4" aria-hidden="true" />
         )}
 
-        <span className="font-mono text-xs text-white truncate">{row.label}</span>
+        <span className="font-mono text-xs text-white truncate">
+          {row.label}
+        </span>
         <span className="font-mono text-[10px] uppercase text-primary border border-primary/30 rounded px-1 py-0.5">
           {typeBadge(row)}
         </span>
+        {row.expired ? (
+          <span className="font-mono text-[10px] uppercase text-red-300 border border-red-400/40 rounded px-1 py-0.5">
+            Expired
+          </span>
+        ) : null}
         <span className="font-mono text-[11px] text-text-muted truncate">
-          {formatPreview(row)}
+          {formatPreview(row, byteDisplayMode, bigIntDisplayMode)}
         </span>
       </div>
+      {row.canonicalKey && (
+        <button
+          type="button"
+          className="px-2 text-[10px] font-mono text-text-muted hover:text-white"
+          aria-label={`Copy canonical ledger key ${row.canonicalKey}`}
+          title={
+            copyStatus === 'failed'
+              ? 'Copy failed'
+              : copyStatus === 'copied'
+                ? 'Copied'
+                : 'Copy canonical ledger key'
+          }
+          onClick={handleCopyCanonicalKey}
+        >
+          {copyStatus === 'failed'
+            ? 'Copy failed'
+            : copyStatus === 'copied'
+              ? 'Copied'
+              : 'Copy key'}
+        </button>
+      )}
     </div>
   )
 }

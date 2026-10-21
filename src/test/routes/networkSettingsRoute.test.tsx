@@ -1,28 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { routeTree } from '../../routeTree.gen'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { SettingsNetwork } from '../../routes/settings/network'
 import { resetStore } from '../../store/lensStore'
 
 describe('Network settings route', () => {
   beforeEach(() => {
     resetStore()
-    window.history.pushState({}, '', '/settings/network')
   })
 
-  it('explains how to distinguish browser RPC connection failures', async () => {
-    const router = createRouter({
-      routeTree,
-      context: {},
-      defaultPreload: 'intent',
-      scrollRestoration: true,
-      defaultStructuralSharing: true,
-      defaultPreloadStaleTime: 0,
-    })
-    render(<RouterProvider router={router} />)
+  it('explains how to distinguish browser RPC connection failures', () => {
+    render(<SettingsNetwork />)
 
     expect(
-      await screen.findByRole('heading', {
+      screen.getByRole('heading', {
         name: 'Browser RPC connection troubleshooting',
       }),
     ).toBeTruthy()

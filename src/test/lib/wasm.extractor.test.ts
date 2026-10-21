@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { extractContractspecv0 } from '../../lib/wasm/wasmExtractor'
+import {
+  MAX_CONTRACT_SPEC_PAYLOAD_BYTES,
+  extractContractspecv0,
+} from '../../lib/wasm/wasmExtractor'
 
 /**
  * Helper to create a minimal valid WASM module
@@ -165,6 +168,34 @@ describe('wasmExtractor - extractContractspecv0', () => {
         expect(result.payload).toEqual(largePayload)
       }
     })
+
+    it('accepts a contract spec payload at the configured size limit', () => {
+      const payload = new Uint8Array(MAX_CONTRACT_SPEC_PAYLOAD_BYTES)
+      const wasm = addCustomSection(
+        createEmptyWasmModule(),
+        'contractspecv0',
+        payload,
+      )
+
+      const result = extractContractspecv0(wasm)
+
+      expect(result.ok).toBe(true)
+      if (result.ok) expect(result.payload).toHaveLength(payload.length)
+    })
+
+    it('returns a bounded failure for payloads over the configured limit', () => {
+      const payload = new Uint8Array(MAX_CONTRACT_SPEC_PAYLOAD_BYTES + 1)
+      const wasm = addCustomSection(
+        createEmptyWasmModule(),
+        'contractspecv0',
+        payload,
+      )
+
+      expect(extractContractspecv0(wasm)).toEqual({
+        ok: false,
+        reason: `contractspecv0 payload exceeds ${MAX_CONTRACT_SPEC_PAYLOAD_BYTES} bytes`,
+      })
+    })
   })
 
   describe('WASM without contractspecv0', () => {
@@ -193,6 +224,23 @@ describe('wasmExtractor - extractContractspecv0', () => {
       if (!result.ok) {
         expect(result.reason).toContain('contractspecv0 section not found')
       }
+    })
+  })
+
+  it('rejects malformed UTF-8 in a custom section name', () => {
+    const wasm = new Uint8Array([
+      ...createEmptyWasmModule(),
+      0x00, // Custom section ID
+      0x04, // Section size: name length plus three name bytes
+      0x03, // Name length
+      0x63,
+      0x75,
+      0xff,
+    ])
+
+    expect(extractContractspecv0(wasm)).toEqual({
+      ok: false,
+      reason: 'Malformed UTF-8 in custom section name',
     })
   })
 
