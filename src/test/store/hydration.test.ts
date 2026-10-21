@@ -37,6 +37,50 @@ Object.defineProperty(global, 'localStorage', {
 })
 
 describe('LensStore Hydration', () => {
+  it('preserves exact i128 and u256 decimal strings across snapshot hydration', async () => {
+    const i128 = '-170141183460469231731687303715884105728'
+    const u256 =
+      '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+    useLensStore.getState().addSnapshot(
+      'C1',
+      {
+        i128: {
+          key: 'i128',
+          contractId: 'C1',
+          type: 'ContractData',
+          value: i128,
+          lastModifiedLedger: 9,
+        },
+        u256: {
+          key: 'u256',
+          contractId: 'C1',
+          type: 'ContractData',
+          value: u256,
+          lastModifiedLedger: 9,
+        },
+      },
+      10,
+      'Large integer fixture',
+    )
+
+    const savedState = localStorage.getItem(NETWORK_CONFIG_STORAGE_KEY)
+    expect(savedState).not.toBeNull()
+    if (savedState === null)
+      throw new Error('Integer snapshot state was not saved')
+    useLensStore.setState({ snapshots: {} })
+    localStorage.setItem(NETWORK_CONFIG_STORAGE_KEY, savedState)
+    await useLensStore.persist.rehydrate()
+
+    expect(useLensStore.getState().getSnapshots('C1')).toMatchObject([
+      {
+        ledgerData: {
+          i128: { value: i128 },
+          u256: { value: u256 },
+        },
+      },
+    ])
+  })
+
   beforeEach(() => {
     clearPersistedNetworkConfig()
     vi.clearAllMocks()
