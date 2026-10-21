@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 
 import { deepClone } from '../lib/deepClone'
+import { isSampleContractId } from '../lib/demoContract'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
 import {
   decodeLedgerEntryMetadata,
@@ -516,6 +517,11 @@ const createContractLoadSlice = (
       const { signal } = controller
       const isRequestStale = () =>
         currentRequestId !== requestId || signal.aborted
+      // Defense in depth (SSL#733): a direct loadContract(live) without a
+      // preceding setActiveContractId(live) must not retain demo records.
+      if (!isSampleContractId(contractId)) {
+        get().clearDemoRecords()
+      }
       set(() => ({
         activeContractId: contractId,
         contractLoadStatus: ContractLoadStatus.LOADING,
@@ -722,7 +728,9 @@ const createContractLoadSlice = (
           ledgerData: {
             ...Object.fromEntries(
               Object.entries(state.ledgerData).filter(
-                ([, entry]) => entry.contractId !== contractId,
+                ([, entry]) =>
+                  isSampleContractId(contractId) ||
+                  entry.contractId !== contractId,
               ),
             ),
             ...Object.fromEntries(

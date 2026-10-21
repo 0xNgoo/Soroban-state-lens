@@ -78,6 +78,26 @@ describe('loadContract action', () => {
     })
   })
 
+  it('preserves demo records when directly loading the sample contract', async () => {
+    const { SAMPLE_CONTRACT_ID } = await import('../../lib/demoContract')
+    const { resetStore, getStoreState, useLensStore } =
+      await import('../../store/lensStore')
+    resetStore()
+    const demoEntry = {
+      key: 'sample-demo-entry',
+      contractId: SAMPLE_CONTRACT_ID,
+      type: 'ContractData' as const,
+      value: 'demo value',
+      lastModifiedLedger: 1,
+    }
+    useLensStore.getState().upsertLedgerEntry(demoEntry)
+    mockGetLedgerEntries.mockResolvedValue({ entries: [], latestLedger: 100 })
+
+    await useLensStore.getState().loadContract(SAMPLE_CONTRACT_ID, [])
+
+    expect(getStoreState().ledgerData[demoEntry.key]).toEqual(demoEntry)
+  })
+
   it('sets EMPTY when the load succeeds with no entries', async () => {
     const { resetStore, getStoreState, useLensStore } =
       await import('../../store/lensStore')
