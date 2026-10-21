@@ -14,8 +14,8 @@
  * falls back to scanning <dist>/assets. It is designed to be importable by the
  * regression tests, so all logic lives in pure functions.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, posix } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -37,7 +37,7 @@ export const DEFAULT_BUDGETS = Object.freeze({
  * file belongs to that budget.
  */
 export const BUDGET_MATCHERS = Object.freeze({
-  decoderWorker: (filename) => /decoder-worker/i.test(filename),
+  decoderWorker: (filename) => /decoder(?:[.-]|$)/i.test(filename),
   stellarSdk: (filename) => /stellar-sdk/i.test(filename),
 })
 
@@ -94,6 +94,112 @@ export function listFilesRecursively(rootDir) {
  * @param {string[]} assetFiles - filenames relative to the dist root
  * @param {(relative: string) => number} sizeOf - returns exact bytes for a file
  * @param {typeof DEFAULT_BUDGETS} budgets - byte budgets per budgeted chunk
- * @returns { report: Array<object>, exceeded: Array<object>, ok: boolean }
+ * @returns {{ report: Array<object>, exceeded: Array<object>, ok: boolean }}
  */
-export function undefined() {}
+export function buildSizeReport(assetFiles, sizeOf, budgets = DEFAULT_BUDGETS) {
+  const report = Object.entries(BUDGET_MATCHERS).map(([name, matches]) => {
+    const files = assetFiles
+      .filter((file) => matches(file))
+      .map((file) => {
+        const bytes = sizeOf(file)
+        if (!Number.isFinite(bytes) || bytes < 0) {
+          throw new TypeError(`Invalid byte size for ${file}: ${bytes}`)
+        }
+        return { file, bytes }
+      })
+    const totalBytes = files.reduce((total, file) => total + file.bytes, 0)
+    const budgetBytes = budgets[name]
+
+    return {
+      budget: name,
+      matched: files.length > 0,
+      totalBytes,
+      budgetBytes,
+      files,
+      exceeded: totalBytes > budgetBytes,
+    }
+  })
+  const exceeded = report.filter((entry) => entry.exceeded)
+
+  return { report, exceeded, ok: exceeded.length === 0 }
+}
+
+/** Read the Vite manifest when present; otherwise scan emitted assets. */
+export function readAssetsFromDist(distDir) {
+  const manifestCandidates = [
+    join(distDir, '.vite', 'manifest.json'),
+    join(distDir, '.manifest.json'),
+  ]
+  const manifestPath = manifestCandidates.find((candidate) =>
+    existsSync(candidate),
+  )
+
+  if (manifestPath) {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    return assetsFromManifest(manifest)
+  }
+
+  const assetsDir = join(distDir, 'assets')
+  return listFilesRecursively(assetsDir).map((file) =>
+    posix.join('assets', file),
+  )
+}
+
+/** Format a human-readable exact-byte report. */
+export function formatReport(result) {
+  return result.report
+    .map((entry) => {
+      const status = entry.exceeded ? 'EXCEEDED' : 'OK'
+      const files = entry.matched
+        ? entry.files
+            .map(({ file, bytes }) => `  ${file}: ${bytes} bytes`)
+            .join('\n')
+        : '  no matching assets'
+      return `${entry.budget}: ${entry.totalBytes} / ${entry.budgetBytes} bytes — ${status}\n${files}`
+    })
+    .join('\n')
+}
+
+function parseArgs(args) {
+  let distDir = 'dist'
+  let json = false
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--json') {
+      json = true
+    } else if (arg === '--dist' && args[index + 1]) {
+      distDir = args[index + 1]
+      index += 1
+    } else {
+      throw new Error(`Unknown or incomplete argument: ${arg}`)
+    }
+  }
+  return { distDir, json }
+}
+
+function runCli() {
+  try {
+    const { distDir, json } = parseArgs(process.argv.slice(2))
+    const root = resolve(distDir)
+    const assets = readAssetsFromDist(root)
+    const result = buildSizeReport(assets, (file) =>
+      fileSizeBytes(join(root, file)),
+    )
+    process.stdout.write(
+      json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : `${formatReport(result)}\n`,
+    )
+    if (!result.ok) process.exitCode = 1
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : error}\n`)
+    process.exitCode = 1
+  }
+}
+
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  runCli()
+}

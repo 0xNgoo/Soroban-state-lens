@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, rmdirSync, statSync } from 'node:fs'
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -46,7 +52,7 @@ describe('bundle-size budget checker', () => {
 
     const sdk = result.report.find((e) => e.budget === 'stellarSdk')
     expect(sdk).toBeDefined()
-    expect(sdk.hatched).toBe(true)
+    expect(sdk.matched).toBe(true)
     expect(sdk.totalBytes).toBe(1013 * 1024)
   })
 
@@ -66,9 +72,9 @@ describe('bundle-size budget checker', () => {
     const result = buildSizeReport(assets, () => DEFAULT_BUDGETS.stellarSdk)
 
     expect(result.ok).toBe(true)
-    expect(result.report.find((e) => e.budget === 'stellarSdk').totalBytes).toBe(
-      DEFAULT_BUDGETS.stellarSdk,
-    )
+    expect(
+      result.report.find((e) => e.budget === 'stellarSdk').totalBytes,
+    ).toBe(DEFAULT_BUDGETS.stellarSdk)
   })
 
   it('reports unmatched budgets without failing', () => {
@@ -83,10 +89,16 @@ describe('bundle-size budget checker', () => {
   })
 
   it('matchers target the decoder worker and stellar-sdk chunks only', () => {
-    expect(BUDGET_MATCHERS.decoderWorker('assets/decoder-worker-abc123.js')).toBe(true)
-    expect(BUDGET_MATCHERS.decoderWorker('assets/decoder-adc123.js')).toBe(true)
+    expect(
+      BUDGET_MATCHERS.decoderWorker('assets/decoder-worker-abc123.js'),
+    ).toBe(true)
+    expect(
+      BUDGET_MATCHERS.decoderWorker('assets/decoder.worker-abc123.js'),
+    ).toBe(true)
     expect(BUDGET_MATCHERS.decoderWorker('assets/index-ghi789.js')).toBe(false)
-    expect(BUDGET_MATCHERS.stellarSdk('assets/stellar-sdk-def456.js')).toBe(true)
+    expect(BUDGET_MATCHERS.stellarSdk('assets/stellar-sdk-def456.js')).toBe(
+      true,
+    )
     expect(BUDGET_MATCHERS.stellarSdk('assets/react-abc123.js')).toBe(false)
   })
 
@@ -96,8 +108,12 @@ describe('bundle-size budget checker', () => {
         file: 'assets/index-ghi789.js',
         css: ['assets/index-adc123.css'],
       },
-      'src/workers/decoder/worker.ts': { file: 'assets/decoder-worker-abc123.js' },
-      'node_modules/@stellar/stellar-sdk': { file: 'assets/stellar-sdk-def456.js' },
+      'src/workers/decoder/worker.ts': {
+        file: 'assets/decoder-worker-abc123.js',
+      },
+      'node_modules/@stellar/stellar-sdk': {
+        file: 'assets/stellar-sdk-def456.js',
+      },
     }
     const assets = assetsFromManifest(manifest)
     expect(assets).toContain('assets/decoder-worker-abc123.js')
@@ -112,6 +128,10 @@ describe('bundle-size budget checker', () => {
       mkdirSync(join(distDir, 'assets'), { recursive: true })
       const workerPath = join(distDir, 'assets', 'decoder-worker-abc123.js')
       const sdkPath = join(distDir, 'assets', 'stellar-sdk-def456.js')
+      writeFileSync(
+        join(distDir, 'manifest.json'),
+        JSON.stringify({ name: 'app' }),
+      )
       writeFileSync(workerPath, Buffer.alloc(1024))
       writeFileSync(sdkPath, Buffer.alloc(2048))
 
@@ -119,18 +139,24 @@ describe('bundle-size budget checker', () => {
       expect(assets).toContain('assets/decoder-worker-abc123.js')
       expect(assets).toContain('assets/stellar-sdk-def456.js')
 
-      const result = buildSizeReport(assets, (rel) => statSync(join(distDir, rel)).size)
+      const result = buildSizeReport(
+        assets,
+        (rel) => statSync(join(distDir, rel)).size,
+      )
       expect(result.ok).toBe(true)
       const worker = result.report.find((e) => e.budget === 'decoderWorker')
       expect(worker.totalBytes).toBe(1024)
     } finally {
-      rmdirSync(distDir, { recursive: true, force: true })
+      rmSync(distDir, { recursive: true, force: true })
     }
   })
 
   it('formats a report that includes exact bytes and exceeded budgets', () => {
     const assets = ['assets/decoder-worker-abc123.js']
-    const result = buildSizeReport(assets, () => DEFAULT_BUDGETS.decoderWorker + 10)
+    const result = buildSizeReport(
+      assets,
+      () => DEFAULT_BUDGETS.decoderWorker + 10,
+    )
     const text = formatReport(result)
     expect(text).toContain('decoderWorker')
     expect(text).toContain('EXCEEDED')

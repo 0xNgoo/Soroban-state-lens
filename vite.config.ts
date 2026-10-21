@@ -61,7 +61,6 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       'scripts/check-source-integrity.test.mjs',
-      'src/test/scripts/check-bundle-size.test.mjs',
     ],
     environment: 'jsdom',
     globals: true,
