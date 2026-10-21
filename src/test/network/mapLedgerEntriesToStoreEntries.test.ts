@@ -61,13 +61,17 @@ describe('mapLedgerEntriesToStoreEntries', () => {
       decodedValuesByKey: {
         'ledger-key-1': { kind: 'primitive', scType: 'string', value: 'hello' },
       },
+      keyInfoByKey: {
+        'ledger-key-1': { type: 'ContractData', displayName: 'counter' },
+      },
     })
 
     expect(result).toEqual([
       {
-        key: 'CONTRACT_1::Other::ledger-key-1',
+        key: 'CONTRACT_1::ContractData::ledger-key-1',
         contractId: 'CONTRACT_1',
-        type: 'Other',
+        type: 'ContractData',
+        displayName: 'counter',
         value: { kind: 'primitive', scType: 'string', value: 'hello' },
         canonicalKey: 'ledger-key-1',
         lastModifiedLedger: 42,
@@ -148,6 +152,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_4',
         type: 'Other',
         value: { kind: 'primitive', scType: 'u64', value: '123' },
+        canonicalKey: 'ledger-key-4',
         lastModifiedLedger: 0,
         expirationLedger: undefined,
         rawXdr: 'xdr-4',
@@ -178,6 +183,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_5',
         type: 'Other',
         value: 'xdr-5',
+        canonicalKey: 'ledger-key-5',
         lastModifiedLedger: 7,
         expirationLedger: 10,
         rawXdr: 'xdr-5',
@@ -200,6 +206,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_6',
         type: 'Other',
         value: 'xdr-6',
+        canonicalKey: 'ledger-key-6',
         lastModifiedLedger: 3,
         expirationLedger: undefined,
         rawXdr: 'xdr-6',
@@ -225,6 +232,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_7',
         type: 'Other',
         value: { kind: 'primitive', scType: 'string', value: 'present' },
+        canonicalKey: 'decoded',
         lastModifiedLedger: 1,
         expirationLedger: undefined,
         rawXdr: 'xdr-decoded',
@@ -234,6 +242,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_7',
         type: 'Other',
         value: 'xdr-raw',
+        canonicalKey: 'raw',
         lastModifiedLedger: 2,
         expirationLedger: undefined,
         rawXdr: 'xdr-raw',
@@ -254,6 +263,7 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         contractId: 'CONTRACT_8',
         type: 'Other',
         value: 'xdr-k',
+        canonicalKey: 'k',
         lastModifiedLedger: 5,
         expirationLedger: undefined,
         rawXdr: 'xdr-k',

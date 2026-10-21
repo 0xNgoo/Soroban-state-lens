@@ -14,7 +14,10 @@ import { createContractDataLedgerEntry } from '../helpers/ledgerEntryFixtures'
 
 import type { ComponentProps, ReactNode } from 'react'
 
-const mockDecodeScVal = vi.fn()
+const { mockDecodeScVal, mockGetLedgerEntries } = vi.hoisted(() => ({
+  mockDecodeScVal: vi.fn(),
+  mockGetLedgerEntries: vi.fn(),
+}))
 let originalClipboardDescriptor: PropertyDescriptor | undefined
 
 vi.mock('@stellar/design-system', () => ({
@@ -54,7 +57,15 @@ vi.mock('@stellar/design-system', () => ({
 
 vi.mock('../../workers/createDecoderWorkerSafe', () => ({
   createDecoderWorkerSafe: () =>
-    Promise.resolve({ decodeScVal: mockDecodeScVal }),
+    Promise.resolve({
+      decodeScVal: mockDecodeScVal,
+      ping: vi.fn().mockResolvedValue({ status: 'pong' }),
+    }),
+  terminateDecoderWorkerSafe: vi.fn(),
+}))
+
+vi.mock('../../lib/network/getLedgerEntries', () => ({
+  getLedgerEntries: mockGetLedgerEntries,
 }))
 
 vi.mock('../../workers/createDecoderWorker', () => ({
@@ -115,20 +126,23 @@ describe('contract exploration smoke flow', () => {
       value: 'stored-value',
       raw: { switch: 'ScvSymbol', value: 'stored-value' },
     }
+    mockGetLedgerEntries.mockResolvedValue({
+      entries: [entry],
+      latestLedger: 100,
+    })
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            jsonrpc: '2.0',
-            id: 1,
-            result: {
-              entries: [entry],
-              latestLedger: 100,
-            },
-          }),
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const request = JSON.parse(String(init?.body)) as {
+          id: number | string
+          method: string
+        }
+        const result = { sequence: 100 }
+        return {
+          ok: true,
+          json: async () => ({ jsonrpc: '2.0', id: request.id, result }),
+        } as Response
       }),
     )
     mockDecodeScVal.mockImplementation(({ xdr: valueXdr }: { xdr: string }) =>
@@ -165,28 +179,22 @@ describe('contract exploration smoke flow', () => {
       { timeout: 10_000 },
     )
 
-    expect(
-      await screen.findByText(
-        'Storage entries will appear here.',
-        {},
-        { timeout: 10_000 },
-      ),
-    ).toBeTruthy()
-
     await router.navigate({
       to: '/contracts/$contractId/explorer',
       params: { contractId },
       search: { keys: entry.key },
     })
 
+    await waitFor(() => {
+      expect(
+        getStoreState().contractLoadStatus,
+        getStoreState().contractLoadError ?? 'no error detail',
+      ).toBe(ContractLoadStatus.SUCCESS)
+    })
+
     expect(
       await screen.findByText('[owner, balance]', {}, { timeout: 10_000 }),
     ).toBeTruthy()
-    await waitFor(() => {
-      expect(getStoreState().contractLoadStatus).toBe(
-        ContractLoadStatus.SUCCESS,
-      )
-    })
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -198,7 +206,7 @@ describe('contract exploration smoke flow', () => {
     })
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Open [owner, balance]' }),
+      screen.getByRole('treeitem', { name: 'Open [owner, balance]' }),
     )
     expect(await screen.findByText('Raw XDR')).toBeTruthy()
     expect(screen.getByText('Metadata')).toBeTruthy()

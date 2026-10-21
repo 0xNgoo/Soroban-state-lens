@@ -1,9 +1,14 @@
 import { xdr } from '@stellar/stellar-sdk'
 import { normalizeContractIdInput } from '../validation/normalizeContractIdInput'
 import { makeLedgerEntryKey } from '../storage/makeLedgerEntryKey'
+import { formatStorageKeyPreview } from '../format/formatStorageKeyPreview'
+import type {
+  DecodedLedgerEntryMetadata,
+  LedgerKeyInfo,
+} from './decodeLedgerEntry'
 import type { LedgerEntry as RpcLedgerEntry } from './getLedgerEntries'
-import type { DecodedLedgerEntryMetadata } from './decodeLedgerEntry'
 import type { LedgerEntry as StoreLedgerEntry } from '../../store/types'
+import type { Node } from '../../types/node'
 
 interface MapLedgerEntriesParams {
   contractId: string
@@ -11,27 +16,9 @@ interface MapLedgerEntriesParams {
   latestLedger?: number
   decodedValuesByKey?: Record<string, unknown>
   decodeErrorReasonsByKey?: Record<string, string>
-}
-
-function inferLedgerEntryType(key: string): StoreLedgerEntry['type'] {
-  const normalized = key.trim().toLowerCase()
-  const tokens = normalized.split('::').map((segment) => segment.trim())
-  const haystack = tokens.join('::')
-
-  if (haystack.includes('contractcode') || haystack.includes('contract_code')) {
-    return 'ContractCode'
-  }
-  if (haystack.includes('contractdata') || haystack.includes('contract_data')) {
-    return 'ContractData'
-  }
-  if (haystack.includes('account')) {
-    return 'Account'
-  }
-  if (haystack.includes('trustline')) {
-    return 'Trustline'
-  }
-
-  return 'Other'
+  keyInfoByKey?: Partial<Record<string, LedgerKeyInfo>>
+  metadataByKey?: Partial<Record<string, DecodedLedgerEntryMetadata>>
+  decodedStorageKeysByKey?: Partial<Record<string, Node>>
 }
 
 function decodeDurability(key: string): StoreLedgerEntry['durability'] {
@@ -39,6 +26,13 @@ function decodeDurability(key: string): StoreLedgerEntry['durability'] {
     const ledgerKey = xdr.LedgerKey.fromXDR(key, 'base64')
     if (ledgerKey.switch().name !== 'contractData') {
       return undefined
+    }
+
+    if (
+      ledgerKey.contractData().key().switch().name ===
+      'scvLedgerKeyContractInstance'
+    ) {
+      return 'Instance'
     }
 
     const durability = ledgerKey.contractData().durability().name
@@ -66,11 +60,17 @@ export function mapLedgerEntriesToStoreEntries(
     latestLedger,
     decodedValuesByKey = {},
     decodeErrorReasonsByKey = {},
+    keyInfoByKey = {},
+    metadataByKey = {},
+    decodedStorageKeysByKey = {},
   } = params
   const contractId = normalizeContractIdInput(params.contractId)
   return entries.map((entry) => {
-    const type = inferLedgerEntryType(entry.key)
+    const keyInfo = keyInfoByKey[entry.key]
+    const metadata = metadataByKey[entry.key]
+    const type = keyInfo?.type ?? metadata?.type ?? 'Other'
     const durability = decodeDurability(entry.key)
+    const decodedStorageKey = decodedStorageKeysByKey[entry.key]
     const last = entry.lastModifiedLedgerSeq
     const live = entry.liveUntilLedgerSeq
 
@@ -95,6 +95,11 @@ export function mapLedgerEntriesToStoreEntries(
       contractId,
       type,
       ...(durability ? { durability } : {}),
+      ...(keyInfo?.displayName ? { displayName: keyInfo.displayName } : {}),
+      canonicalKey: entry.key,
+      ...(decodedStorageKey
+        ? { displayKey: formatStorageKeyPreview(decodedStorageKey) }
+        : {}),
       value:
         decodedValuesByKey[entry.key] !== undefined
           ? decodedValuesByKey[entry.key]

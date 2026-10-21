@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startLedgerHeadPoll } from '../../lib/network/ledgerPoller'
 import { callRpc } from '../../lib/network/rpcClient'
-import { getStoreState, resetStore } from '../../store/lensStore'
-import { ConnectionStatus } from '../../store/types'
 
 vi.mock('../../lib/network/rpcClient', () => ({
   callRpc: vi.fn(),

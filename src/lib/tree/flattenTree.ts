@@ -78,8 +78,17 @@ function walkNode(params: {
   expandedIds: Set<string>
   expired?: boolean
 }): void {
-  const { rows, node, id, parentId, depth, label, expandedIds, expired } =
-    params
+  const {
+    rows,
+    node,
+    id,
+    parentId,
+    depth,
+    label,
+    canonicalKey,
+    expandedIds,
+    expired,
+  } = params
   const children = getChildren(node)
 
   rows.push({

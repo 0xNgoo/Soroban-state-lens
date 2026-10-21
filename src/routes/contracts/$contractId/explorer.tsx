@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Button, Card, Heading } from '@stellar/design-system'
-import { useShallow } from 'zustand/react/shallow'
 import { VirtualizedTreeList } from '../../../components/explorer/VirtualizedTreeList'
 import { LoadingSkeleton } from '../../../components/explorer/LoadingSkeleton'
 import {
@@ -202,7 +201,7 @@ function ContractExplorer() {
         return [
           {
             id: entry.key,
-            label: entry.displayKey ?? entry.key,
+            label: entry.displayKey ?? entry.displayName ?? entry.key,
             canonicalKey: entry.canonicalKey,
             node: entry.value,
             expired: entry.expired,

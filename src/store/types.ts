@@ -30,6 +30,7 @@ export interface LedgerEntry {
   canonicalKey?: string
   displayKey?: string
   value: unknown
+  displayName?: string
   lastModifiedLedger: number
   expirationLedger?: number
   expired?: boolean
