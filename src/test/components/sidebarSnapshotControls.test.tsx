@@ -81,6 +81,49 @@ describe('Sidebar snapshot controls', () => {
     vi.restoreAllMocks()
   })
 
+  it('announces the label of a successfully captured snapshot', () => {
+    useLensStore.getState().upsertLedgerEntry({
+      key: `${contractId}::ContractData::key`,
+      contractId,
+      type: 'ContractData',
+      value: 'value',
+      lastModifiedLedger: 1,
+    })
+    render(
+      <Sidebar
+        open
+        onClose={() => {}}
+        variant="pinned"
+        activeNavItem="history"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Capture' }))
+
+    expect(screen.getByRole('status').textContent).toBe('Captured Snapshot #3.')
+    expect(useLensStore.getState().getSnapshots(contractId).at(-1)?.label).toBe(
+      'Snapshot #3',
+    )
+  })
+
+  it('announces why capture is unavailable when no entries are loaded', () => {
+    render(
+      <Sidebar
+        open
+        onClose={() => {}}
+        variant="pinned"
+        activeNavItem="history"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Capture' }))
+
+    expect(screen.getByRole('status').textContent).toContain(
+      'No snapshot captured: query keys and load contract entries successfully',
+    )
+    expect(useLensStore.getState().getSnapshots(contractId)).toHaveLength(2)
+  })
+
   it('filters tree placeholders from the filter control', () => {
     render(
       <Sidebar

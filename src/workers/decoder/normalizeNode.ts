@@ -72,10 +72,111 @@ function toRaw(scVal: ScVal | null | undefined): RawScVal {
   if (!scVal) {
     return { switch: '' }
   }
+  const switchName = getScValSwitch(scVal) ?? ''
+  const value = getScValValue(scVal)
   return {
-    switch: scVal.switch,
-    value: scVal.value,
+    switch: switchName,
+    ...(value === undefined
+      ? {}
+      : { value: toSerializableRawValue(value, switchName) }),
   }
+}
+
+function toSerializableRawValue(
+  value: unknown,
+  switchName?: string,
+  seen = new WeakMap<object, unknown>(),
+): unknown {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString()
+  }
+
+  if (
+    switchName === ScValType.SCV_STRING ||
+    switchName === ScValType.SCV_SYMBOL
+  ) {
+    return stringLikeToString(value)
+  }
+
+  if (value instanceof Uint8Array) {
+    return Array.from(value)
+  }
+
+  if (Array.isArray(value)) {
+    const existing = seen.get(value)
+    if (existing !== undefined) return existing
+    const result: Array<unknown> = []
+    seen.set(value, result)
+    result.push(
+      ...value.map((item) => toSerializableRawValue(item, undefined, seen)),
+    )
+    return result
+  }
+
+  if (typeof value !== 'object') {
+    return undefined
+  }
+
+  const existing = seen.get(value)
+  if (existing !== undefined) return existing
+
+  const xdrObject = value as {
+    switch?: () => { name?: string }
+    value?: () => unknown
+    key?: () => unknown
+    val?: () => unknown
+    toString?: () => string
+  }
+
+  if (
+    typeof xdrObject.switch === 'function' &&
+    typeof xdrObject.value === 'function'
+  ) {
+    const rawSwitch = getScValSwitch(value)
+    const result: Record<string, unknown> = { switch: rawSwitch ?? '' }
+    seen.set(value, result)
+    const rawValue = getScValValue(value)
+    if (rawValue !== undefined) {
+      result.value = toSerializableRawValue(rawValue, rawSwitch, seen)
+    }
+    return result
+  }
+
+  if (
+    typeof xdrObject.key === 'function' &&
+    typeof xdrObject.val === 'function'
+  ) {
+    const result: Record<string, unknown> = {}
+    seen.set(value, result)
+    result.key = toSerializableRawValue(xdrObject.key(), undefined, seen)
+    result.val = toSerializableRawValue(xdrObject.val(), undefined, seen)
+    return result
+  }
+
+  if (typeof xdrObject.toString === 'function') {
+    const stringValue = xdrObject.toString()
+    if (stringValue !== '[object Object]') {
+      return stringValue
+    }
+  }
+
+  const result: Record<string, unknown> = {}
+  seen.set(value, result)
+  for (const [key, property] of Object.entries(value)) {
+    if (typeof property !== 'function') {
+      result[key] = toSerializableRawValue(property, undefined, seen)
+    }
+  }
+  return result
 }
 
 function getScValSwitch(scVal: any): string | undefined {

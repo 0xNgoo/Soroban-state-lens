@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Button, Card, Heading } from '@stellar/design-system'
 import { VirtualizedTreeList } from '../../../components/explorer/VirtualizedTreeList'
@@ -173,15 +173,22 @@ function ContractExplorer() {
 
   const snapshots = useSnapshots(contractId)
   const addSnapshot = useLensStore((state) => state.addSnapshot)
+  const [captureStatus, setCaptureStatus] = useState<string | null>(null)
 
   const handleCaptureSnapshot = () => {
-    if (ledgerEntries.length === 0) return
+    if (ledgerEntries.length === 0) {
+      setCaptureStatus(
+        'No snapshot captured: the current contract query returned no entries.',
+      )
+      return
+    }
     const entriesDict: Record<string, (typeof ledgerEntries)[0]> = {}
     ledgerEntries.forEach((entry) => {
       entriesDict[entry.key] = entry
     })
     const label = `Snapshot #${snapshots.length + 1}`
     addSnapshot(contractId, entriesDict, currentLedgerSequence, label)
+    setCaptureStatus(`Captured ${label}.`)
   }
 
   const keys = useMemo(
@@ -310,6 +317,12 @@ function ContractExplorer() {
           </Button>
         </div>
       </header>
+
+      {captureStatus && (
+        <p role="status" aria-live="polite" className="text-text-muted text-sm">
+          {captureStatus}
+        </p>
+      )}
 
       {contractLoadStatus === ContractLoadStatus.LOADING && <LoadingSkeleton />}
 
