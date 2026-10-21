@@ -69,6 +69,9 @@ export default function Sidebar({
   const activeContractLabel = activeContractId
     ? formatContractIdShort(activeContractId)
     : null
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterText, setFilterText] = useState('')
+  const collapseAll = useLensStore((state) => state.collapseAll)
 
   useEffect(() => {
     if (isPinned) return
@@ -122,12 +125,15 @@ export default function Sidebar({
                 <button
                   className="text-text-muted hover:text-white"
                   aria-label="Collapse all"
+                  onClick={collapseAll}
                 >
                   <ChevronUp size={18} />
                 </button>
                 <button
                   className="text-text-muted hover:text-white"
                   aria-label="Filter"
+                  aria-expanded={filterOpen}
+                  onClick={() => setFilterOpen((value) => !value)}
                 >
                   <Filter size={18} />
                 </button>
@@ -137,7 +143,25 @@ export default function Sidebar({
 
           {/* Panel Body */}
           <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-            {isHistory ? <HistoryPanel /> : <TreePlaceholder />}
+            {isHistory ? (
+              <HistoryPanel />
+            ) : (
+              <>
+                {filterOpen && (
+                  <input
+                    type="search"
+                    aria-label="Filter ledger entries"
+                    placeholder="Filter ledger entries"
+                    value={filterText}
+                    onChange={(event) =>
+                      setFilterText(event.currentTarget.value)
+                    }
+                    className="mb-3 w-full rounded border border-border-dark bg-background-dark px-2 py-1 text-xs text-white"
+                  />
+                )}
+                <TreePlaceholder filterText={filterText} />
+              </>
+            )}
           </div>
         </div>
       </aside>
@@ -261,6 +285,8 @@ export default function Sidebar({
               <button
                 className="text-text-muted hover:text-white"
                 aria-label="Filter"
+                aria-expanded={filterOpen}
+                onClick={() => setFilterOpen((value) => !value)}
               >
                 <Filter size={18} />
               </button>
@@ -272,23 +298,36 @@ export default function Sidebar({
             >
               <X size={18} />
             </button>
+            {!isHistory && (
+              <button
+                className="text-text-muted hover:text-white"
+                aria-label="Collapse all"
+                onClick={collapseAll}
+              >
+                <ChevronUp size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
+          {filterOpen && (
+            <input
+              type="search"
+              aria-label="Filter ledger entries"
+              placeholder="Filter ledger entries"
+              value={filterText}
+              onChange={(event) => setFilterText(event.currentTarget.value)}
+              className="mb-3 w-full rounded border border-border-dark bg-background-dark px-2 py-1 text-xs text-white"
+            />
+          )}
+          {isHistory ? (
+            <HistoryPanel />
+          ) : (
+            <TreePlaceholder filterText={filterText} />
           )}
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-        {filterOpen && (
-          <input
-            type="search"
-            aria-label="Filter ledger entries"
-            placeholder="Filter ledger entries"
-            value={filterText}
-            onChange={(event) => setFilterText(event.currentTarget.value)}
-            className="mb-3 w-full rounded border border-border-dark bg-background-dark px-2 py-1 text-xs text-white"
-          />
-        )}
-        <TreePlaceholder filterText={filterText} />
-      </div>
-    </div>
+      </aside>
+    </>
   )
 }
 
