@@ -70,6 +70,7 @@ describe('loadContract action', () => {
     expect(state.activeContractId).toBe('C1')
     expect(state.contractLoadStatus).toBe(ContractLoadStatus.SUCCESS)
     expect(Object.keys(state.ledgerData)).toHaveLength(1)
+    expect(mockDecodeScVal).toHaveBeenCalledWith({ xdr: fixture.valueXdr })
     expect(loadedEntry.rawXdr).toBe(fixture.entryXdr)
     expect(loadedEntry.durability).toBe('Temporary')
     expect(loadedEntry.expired).toBe(true)
