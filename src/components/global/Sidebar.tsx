@@ -426,9 +426,18 @@ function HistoryPanel() {
   const comparisonNextSnapshot = selectedSnapshotsMatch
     ? latestNextSnapshot
     : nextSnapshot
+  const incompleteSnapshot = comparisonPreviousSnapshot?.incomplete
+    ? comparisonPreviousSnapshot
+    : comparisonNextSnapshot?.incomplete
+      ? comparisonNextSnapshot
+      : undefined
 
   const handleDownloadDiff = () => {
-    if (comparisonPreviousSnapshot && comparisonNextSnapshot) {
+    if (
+      comparisonPreviousSnapshot &&
+      comparisonNextSnapshot &&
+      !incompleteSnapshot
+    ) {
       downloadSnapshotDiff(comparisonPreviousSnapshot, comparisonNextSnapshot)
     }
   }
@@ -448,7 +457,13 @@ function HistoryPanel() {
 
   // Compute the selected diff summary if 2 or more snapshots exist
   const diffSummary = useMemo(() => {
-    if (!comparisonPreviousSnapshot || !comparisonNextSnapshot) return null
+    if (
+      !comparisonPreviousSnapshot ||
+      !comparisonNextSnapshot ||
+      incompleteSnapshot
+    ) {
+      return null
+    }
 
     const prev = comparisonPreviousSnapshot
     const next = comparisonNextSnapshot
@@ -491,7 +506,12 @@ function HistoryPanel() {
       unchanged,
       total: allKeys.length,
     }
-  }, [comparisonNextSnapshot, comparisonPreviousSnapshot, snapshots])
+  }, [
+    comparisonNextSnapshot,
+    comparisonPreviousSnapshot,
+    incompleteSnapshot,
+    snapshots,
+  ])
 
   if (!activeContractId) {
     return (
@@ -606,6 +626,14 @@ function HistoryPanel() {
               </span>
             </div>
 
+            {incompleteSnapshot && (
+              <p role="alert" className="text-xs text-amber-400">
+                {incompleteSnapshot.label ||
+                  `Snapshot #${snapshots.indexOf(incompleteSnapshot) + 1}`}{' '}
+                has rejected entries. Recapture this snapshot before comparing.
+              </p>
+            )}
+
             <div className="grid grid-cols-2 gap-2 text-[10px]">
               <label className="flex flex-col gap-1 text-text-muted">
                 From snapshot
@@ -621,7 +649,10 @@ function HistoryPanel() {
                     <option
                       key={snapshot.id}
                       value={snapshot.id}
-                      disabled={snapshot.id === comparisonNextSnapshot?.id}
+                      disabled={
+                        snapshot.incomplete ||
+                        snapshot.id === comparisonNextSnapshot?.id
+                      }
                     >
                       {snapshot.label || `Snapshot #${index + 1}`}
                     </option>
@@ -640,7 +671,10 @@ function HistoryPanel() {
                     <option
                       key={snapshot.id}
                       value={snapshot.id}
-                      disabled={snapshot.id === comparisonPreviousSnapshot?.id}
+                      disabled={
+                        snapshot.incomplete ||
+                        snapshot.id === comparisonPreviousSnapshot?.id
+                      }
                     >
                       {snapshot.label || `Snapshot #${index + 1}`}
                     </option>
@@ -650,40 +684,42 @@ function HistoryPanel() {
             </div>
 
             {/* Counts Grid */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 flex flex-col gap-0.5 hover:bg-green-500/15 transition-colors">
-                <span className="text-green-400 font-bold text-base font-mono">
-                  +{diffSummary?.created}
-                </span>
-                <span className="text-[9px] text-green-300/80 uppercase font-bold tracking-wider">
-                  Created
-                </span>
+            {!incompleteSnapshot && (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 flex flex-col gap-0.5 hover:bg-green-500/15 transition-colors">
+                  <span className="text-green-400 font-bold text-base font-mono">
+                    +{diffSummary?.created}
+                  </span>
+                  <span className="text-[9px] text-green-300/80 uppercase font-bold tracking-wider">
+                    Created
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex flex-col gap-0.5 hover:bg-red-500/15 transition-colors">
+                  <span className="text-red-400 font-bold text-base font-mono">
+                    -{diffSummary?.deleted}
+                  </span>
+                  <span className="text-[9px] text-red-300/80 uppercase font-bold tracking-wider">
+                    Deleted
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex flex-col gap-0.5 hover:bg-amber-500/15 transition-colors">
+                  <span className="text-amber-400 font-bold text-base font-mono">
+                    ~{diffSummary?.modified}
+                  </span>
+                  <span className="text-[9px] text-amber-300/80 uppercase font-bold tracking-wider">
+                    Modified
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/5 border border-border-dark/50 flex flex-col gap-0.5 hover:bg-white/10 transition-colors">
+                  <span className="text-text-muted font-bold text-base font-mono">
+                    {diffSummary?.unchanged}
+                  </span>
+                  <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider">
+                    Unchanged
+                  </span>
+                </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex flex-col gap-0.5 hover:bg-red-500/15 transition-colors">
-                <span className="text-red-400 font-bold text-base font-mono">
-                  -{diffSummary?.deleted}
-                </span>
-                <span className="text-[9px] text-red-300/80 uppercase font-bold tracking-wider">
-                  Deleted
-                </span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex flex-col gap-0.5 hover:bg-amber-500/15 transition-colors">
-                <span className="text-amber-400 font-bold text-base font-mono">
-                  ~{diffSummary?.modified}
-                </span>
-                <span className="text-[9px] text-amber-300/80 uppercase font-bold tracking-wider">
-                  Modified
-                </span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-white/5 border border-border-dark/50 flex flex-col gap-0.5 hover:bg-white/10 transition-colors">
-                <span className="text-text-muted font-bold text-base font-mono">
-                  {diffSummary?.unchanged}
-                </span>
-                <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider">
-                  Unchanged
-                </span>
-              </div>
-            </div>
+            )}
 
             <div className="pt-2 flex gap-2">
               <button
@@ -702,6 +738,7 @@ function HistoryPanel() {
               <button
                 onClick={handleDownloadDiff}
                 aria-label="Download snapshot diff as JSON"
+                disabled={Boolean(incompleteSnapshot)}
                 className="py-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Download snapshot diff as JSON"
               >

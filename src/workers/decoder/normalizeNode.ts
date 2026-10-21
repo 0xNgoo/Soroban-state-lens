@@ -11,6 +11,7 @@ import type {
   PathSegment,
   PrimitiveNode,
   RawScVal,
+  RawValue,
   TruncatedNode,
   UnsupportedNode,
   VecNode,
@@ -85,8 +86,8 @@ function toRaw(scVal: ScVal | null | undefined): RawScVal {
 function toSerializableRawValue(
   value: unknown,
   switchName?: string,
-  seen = new WeakMap<object, unknown>(),
-): unknown {
+  seen = new WeakMap<object, RawValue>(),
+): RawValue {
   if (
     value === null ||
     typeof value === 'string' ||
@@ -114,7 +115,7 @@ function toSerializableRawValue(
   if (Array.isArray(value)) {
     const existing = seen.get(value)
     if (existing !== undefined) return existing
-    const result: Array<unknown> = []
+    const result: Array<RawValue> = []
     seen.set(value, result)
     result.push(
       ...value.map((item) => toSerializableRawValue(item, undefined, seen)),
@@ -123,7 +124,7 @@ function toSerializableRawValue(
   }
 
   if (typeof value !== 'object') {
-    return undefined
+    return null
   }
 
   const existing = seen.get(value)
@@ -142,7 +143,7 @@ function toSerializableRawValue(
     typeof xdrObject.value === 'function'
   ) {
     const rawSwitch = getScValSwitch(value)
-    const result: Record<string, unknown> = { switch: rawSwitch ?? '' }
+    const result: Record<string, RawValue> = { switch: rawSwitch ?? '' }
     seen.set(value, result)
     const rawValue = getScValValue(value)
     if (rawValue !== undefined) {
@@ -155,7 +156,7 @@ function toSerializableRawValue(
     typeof xdrObject.key === 'function' &&
     typeof xdrObject.val === 'function'
   ) {
-    const result: Record<string, unknown> = {}
+    const result: Record<string, RawValue> = {}
     seen.set(value, result)
     result.key = toSerializableRawValue(xdrObject.key(), undefined, seen)
     result.val = toSerializableRawValue(xdrObject.val(), undefined, seen)
@@ -169,7 +170,7 @@ function toSerializableRawValue(
     }
   }
 
-  const result: Record<string, unknown> = {}
+  const result: Record<string, RawValue> = {}
   seen.set(value, result)
   for (const [key, property] of Object.entries(value)) {
     if (typeof property !== 'function') {

@@ -54,16 +54,23 @@ function formatNode(node: Node, depth: number): string {
     }
     case 'error':
       return `${node.errorType}:${node.code}`
-    case 'unsupported':
-      if (
-        node.variant === 'ScvBytes' &&
-        (node.raw.value instanceof Uint8Array ||
-          Array.isArray(node.raw.value) ||
-          typeof node.raw.value === 'string')
-      ) {
-        return formatScBytesHex(node.raw.value)
+    case 'unsupported': {
+      const rawValue = node.raw.value
+      const numberArray = Array.isArray(rawValue)
+        ? rawValue.every((value): value is number => typeof value === 'number')
+          ? rawValue
+          : undefined
+        : undefined
+      if (node.variant === 'ScvBytes') {
+        if (rawValue instanceof Uint8Array || typeof rawValue === 'string') {
+          return formatScBytesHex(rawValue)
+        }
+        if (numberArray !== undefined) {
+          return formatScBytesHex(numberArray)
+        }
       }
       return node.variant
+    }
     case 'truncated':
     case 'cycle':
       return '...'

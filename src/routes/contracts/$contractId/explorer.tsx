@@ -3,19 +3,50 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Button, Card, Heading } from '@stellar/design-system'
 import { VirtualizedTreeList } from '../../../components/explorer/VirtualizedTreeList'
 import { LoadingSkeleton } from '../../../components/explorer/LoadingSkeleton'
+import { LocalDemoNotice } from '../../../components/explorer/LocalDemoNotice'
 import {
   collectExpandableNodeIds,
   flattenTree,
 } from '../../../lib/tree/flattenTree'
 import { useContractLedgerPolling } from '../../../lib/network/useContractLedgerPolling'
+import { isSampleContractId } from '../../../lib/demoContract'
 import { ContractLoadStatus } from '../../../store/types'
 import { useLensStore, useSnapshots } from '../../../store/lensStore'
 import { validateContractRouteParam } from './-validateContractRouteParam'
+import { validateExplorerSearch } from './-validateExplorerSearch'
 import type { LedgerEntry } from '../../../store/types'
 import type { FlattenTreeRoot } from '../../../lib/tree/flatTreeRow'
 import type { Node } from '../../../types/node'
 
 const EMPTY_EXPANDED_NODES: Array<string> = []
+
+export function ContractLoadStatusAnnouncement({
+  status,
+  error,
+  ledgerEntryCount,
+}: {
+  status: ContractLoadStatus
+  error: string | null
+  ledgerEntryCount: number
+}) {
+  const announcement =
+    status === ContractLoadStatus.LOADING
+      ? 'Loading contract data.'
+      : status === ContractLoadStatus.EMPTY
+        ? 'No contract data found.'
+        : status === ContractLoadStatus.ERROR
+          ? `Failed to load contract data. ${error || 'Unknown error.'}`
+          : status === ContractLoadStatus.SUCCESS
+            ? `Contract data loaded. ${ledgerEntryCount} ledger entr${ledgerEntryCount === 1 ? 'y' : 'ies'} found.`
+            : ''
+
+  return (
+    <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {announcement}
+    </p>
+  )
+}
+
 export function resolveSelectedKeyPath(
   selectedKeyPath: string | null,
   rows: Array<{ id?: string; keyPath?: string }>,
@@ -97,10 +128,10 @@ export function dedupeExplorerKeys(value: string): string {
 
 export const Route = createFileRoute('/contracts/$contractId/explorer')({
   component: ContractExplorer,
-  validateSearch: (search: Record<string, unknown>) => ({
-    keys:
-      typeof search.keys === 'string' ? dedupeExplorerKeys(search.keys) : '',
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const validated = validateExplorerSearch(search)
+    return { ...validated, keys: dedupeExplorerKeys(validated.keys) }
+  },
   beforeLoad: ({ params }) => {
     const result = validateContractRouteParam(params.contractId)
     if (!result.ok) {
@@ -210,6 +241,7 @@ function ContractExplorer() {
             id: entry.key,
             label: entry.displayKey ?? entry.displayName ?? entry.key,
             canonicalKey: entry.canonicalKey,
+            durability: entry.durability,
             node: entry.value,
             expired: entry.expired,
           },
@@ -290,6 +322,11 @@ function ContractExplorer() {
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-10 max-w-6xl mx-auto w-full">
+      <ContractLoadStatusAnnouncement
+        status={contractLoadStatus}
+        error={contractLoadError}
+        ledgerEntryCount={ledgerEntries.length}
+      />
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border-dark pb-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
@@ -324,6 +361,8 @@ function ContractExplorer() {
           {captureStatus}
         </p>
       )}
+
+      {isSampleContractId(contractId) && <LocalDemoNotice />}
 
       {contractLoadStatus === ContractLoadStatus.LOADING && <LoadingSkeleton />}
 

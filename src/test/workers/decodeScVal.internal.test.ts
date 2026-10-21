@@ -20,6 +20,29 @@ function pathValues(node: Node): Array<number | string> {
 }
 
 describe('decoderWorkerApi.decodeScVal', () => {
+  function expectPlainCloneSafe(value: unknown): void {
+    expect(structuredClone(value)).toEqual(value)
+
+    const visit = (candidate: unknown): void => {
+      expect(typeof candidate).not.toBe('function')
+      if (candidate === null || typeof candidate !== 'object') {
+        return
+      }
+
+      const prototype = Object.getPrototypeOf(candidate)
+      expect([Object.prototype, Array.prototype, null]).toContain(prototype)
+
+      for (const descriptor of Object.values(
+        Object.getOwnPropertyDescriptors(candidate),
+      )) {
+        expect('value' in descriptor).toBe(true)
+        visit(descriptor.value)
+      }
+    }
+
+    visit(value)
+  }
+
   it('should decode a boolean ScVal', async () => {
     const scVal = xdr.ScVal.scvBool(true)
     const xdrString = scVal.toXDR('base64')
@@ -87,6 +110,7 @@ describe('decoderWorkerApi.decodeScVal', () => {
     expect(result.kind).toBe('vec')
     if (result.kind === 'vec') {
       expect(result.items).toHaveLength(2)
+      expectPlainCloneSafe(result)
 
       expect(result.items[0]).toMatchObject({
         kind: 'primitive',
@@ -141,6 +165,7 @@ describe('decoderWorkerApi.decodeScVal', () => {
 
     expect(result.kind).toBe('map')
     if (result.kind === 'map') {
+      expectPlainCloneSafe(result)
       expect(result.entries).toHaveLength(2)
 
       expect(result.entries[0].key).toMatchObject({

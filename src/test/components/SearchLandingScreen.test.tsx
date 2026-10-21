@@ -48,6 +48,20 @@ describe('SearchLandingScreen recent history action', () => {
     ).toBeTruthy()
   })
 
+  it('marks the sample explorer URL as local demo mode', () => {
+    render(<SearchLandingScreen />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /load sample contract/i }),
+    )
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/contracts/$contractId/explorer',
+      params: { contractId: SAMPLE_CONTRACT_ID },
+      search: { keys: '', mode: 'demo' },
+    })
+  })
+
   it('disables wallet connection with clear unavailable status', () => {
     render(<SearchLandingScreen />)
 
