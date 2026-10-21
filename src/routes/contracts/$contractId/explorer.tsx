@@ -13,6 +13,7 @@ import { isSampleContractId } from '../../../lib/demoContract'
 import { ContractLoadStatus } from '../../../store/types'
 import { useLensStore, useSnapshots } from '../../../store/lensStore'
 import { validateContractRouteParam } from './-validateContractRouteParam'
+import { validateExplorerSearch } from './-validateExplorerSearch'
 import type { LedgerEntry } from '../../../store/types'
 import type { FlattenTreeRoot } from '../../../lib/tree/flatTreeRow'
 import type { Node } from '../../../types/node'
@@ -127,10 +128,10 @@ export function dedupeExplorerKeys(value: string): string {
 
 export const Route = createFileRoute('/contracts/$contractId/explorer')({
   component: ContractExplorer,
-  validateSearch: (search: Record<string, unknown>) => ({
-    keys:
-      typeof search.keys === 'string' ? dedupeExplorerKeys(search.keys) : '',
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const validated = validateExplorerSearch(search)
+    return { ...validated, keys: dedupeExplorerKeys(validated.keys) }
+  },
   beforeLoad: ({ params }) => {
     const result = validateContractRouteParam(params.contractId)
     if (!result.ok) {

@@ -105,7 +105,12 @@ export function InspectShell({
           <Link
             to="/contracts/$contractId/explorer"
             params={{ contractId }}
-            search={{ keys: '' }}
+            search={{
+              keys: '',
+              mode: isSampleContractId(normalizedContractId || contractId)
+                ? 'demo'
+                : 'live',
+            }}
             aria-label="Back to explorer"
             className="text-sm text-primary hover:underline font-mono whitespace-nowrap"
           >
