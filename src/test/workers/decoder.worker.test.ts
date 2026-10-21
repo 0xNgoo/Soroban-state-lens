@@ -1,10 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import * as Comlink from 'comlink'
+import { xdr } from '@stellar/stellar-sdk'
 
+import { isDecoderWorkerError } from '../../types/decoder-worker'
+import { decoderWorkerApi } from '../../workers/decoder.worker'
 import type { DecoderWorkerApi } from '../../types/decoder-worker'
 
 // Mock Comlink.wrap to return a mock worker API
 vi.mock('comlink', () => ({
+  expose: vi.fn(),
   wrap: vi.fn(() => ({
     ping: vi.fn().mockResolvedValue({ status: 'pong' }),
   })),
@@ -46,26 +50,24 @@ describe('DecoderWorker Comlink Integration', () => {
     expect(Comlink.wrap).toHaveBeenCalledWith(expect.any(Object))
   })
 
-  it('verifies ledger-to-worker decoding boundary with isolated mocked fixtures', () => {
-    // Arrange: Mocked LedgerEntryData fixture explicitly labeled and isolated
-    const mockedLedgerEntryFixture = {
-      __fixtureType: 'MockedLedgerEntryData',
-      rpcEnvelopeVersion: 1,
-      entryData: {
-        lastModifiedLedgerSeq: 12345,
-        data: 'AAAAAQAAAAE=', // Mock base64 ScVal XDR
-      },
+  it('decodes ScVal XDR into a structured-cloneable worker result', async () => {
+    const scVal = xdr.ScVal.scvVec([xdr.ScVal.scvU32(42)])
+    const result = await decoderWorkerApi.decodeScVal({
+      xdr: scVal.toXDR('base64'),
+    })
+
+    if (isDecoderWorkerError(result)) {
+      throw new Error(`Expected decoded value, received: ${result.message}`)
     }
 
-    // Act: Ensure boundary metadata separates mock simulation from real worker transport
-    const transportSafeMetadata = {
-      isMocked: mockedLedgerEntryFixture.__fixtureType === 'MockedLedgerEntryData',
-      decodedValue: 'mocked-primitive-scval',
+    expect(structuredClone(result)).toEqual(result)
+    expect(result.kind).toBe('vec')
+    if (result.kind === 'vec') {
+      expect(result.items[0]).toMatchObject({
+        kind: 'primitive',
+        scType: 'u32',
+        value: 42,
+      })
     }
-
-    // Assert
-    expect(mockedLedgerEntryFixture.__fixtureType).toBe('MockedLedgerEntryData')
-    expect(transportSafeMetadata.isMocked).toBe(true)
-    // Preserves unrelated contract and network state isolation
   })
 })
