@@ -68,9 +68,43 @@ export interface NormalizeOptions {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function toCloneSafeValue(value: unknown): unknown {
-  if (value === null || typeof value !== 'object') {
-    return typeof value === 'bigint' ? value.toString() : value
+function toRaw(scVal: ScVal | null | undefined): RawScVal {
+  if (!scVal) {
+    return { switch: '' }
+  }
+  const switchName = getScValSwitch(scVal) ?? ''
+  const value = getScValValue(scVal)
+  return {
+    switch: switchName,
+    ...(value === undefined
+      ? {}
+      : { value: toSerializableRawValue(value, switchName) }),
+  }
+}
+
+function toSerializableRawValue(
+  value: unknown,
+  switchName?: string,
+  seen = new WeakMap<object, unknown>(),
+): unknown {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString()
+  }
+
+  if (
+    switchName === ScValType.SCV_STRING ||
+    switchName === ScValType.SCV_SYMBOL
+  ) {
+    return stringLikeToString(value)
   }
 
   if (value instanceof Uint8Array) {
@@ -78,48 +112,71 @@ function toCloneSafeValue(value: unknown): unknown {
   }
 
   if (Array.isArray(value)) {
-    return value.map(toCloneSafeValue)
+    const existing = seen.get(value)
+    if (existing !== undefined) return existing
+    const result: Array<unknown> = []
+    seen.set(value, result)
+    result.push(
+      ...value.map((item) => toSerializableRawValue(item, undefined, seen)),
+    )
+    return result
   }
 
-  const xdrValue = value as {
-    switch?: unknown
-    value?: unknown
-    key?: unknown
-    val?: unknown
+  if (typeof value !== 'object') {
+    return undefined
   }
-  if (typeof xdrValue.switch === 'function') {
-    return {
-      switch: getScValSwitch(value),
-      value: toCloneSafeValue(getScValValue(value)),
-    }
+
+  const existing = seen.get(value)
+  if (existing !== undefined) return existing
+
+  const xdrObject = value as {
+    switch?: () => { name?: string }
+    value?: () => unknown
+    key?: () => unknown
+    val?: () => unknown
+    toString?: () => string
   }
+
   if (
-    typeof xdrValue.key === 'function' &&
-    typeof xdrValue.val === 'function'
+    typeof xdrObject.switch === 'function' &&
+    typeof xdrObject.value === 'function'
   ) {
-    return {
-      key: toCloneSafeValue((xdrValue.key as () => unknown)()),
-      val: toCloneSafeValue((xdrValue.val as () => unknown)()),
+    const rawSwitch = getScValSwitch(value)
+    const result: Record<string, unknown> = { switch: rawSwitch ?? '' }
+    seen.set(value, result)
+    const rawValue = getScValValue(value)
+    if (rawValue !== undefined) {
+      result.value = toSerializableRawValue(rawValue, rawSwitch, seen)
+    }
+    return result
+  }
+
+  if (
+    typeof xdrObject.key === 'function' &&
+    typeof xdrObject.val === 'function'
+  ) {
+    const result: Record<string, unknown> = {}
+    seen.set(value, result)
+    result.key = toSerializableRawValue(xdrObject.key(), undefined, seen)
+    result.val = toSerializableRawValue(xdrObject.val(), undefined, seen)
+    return result
+  }
+
+  if (typeof xdrObject.toString === 'function') {
+    const stringValue = xdrObject.toString()
+    if (stringValue !== '[object Object]') {
+      return stringValue
     }
   }
 
-  return Object.fromEntries(
-    Object.entries(value).map(([key, child]) => [key, toCloneSafeValue(child)]),
-  )
-}
-
-function toRaw(scVal: ScVal | null | undefined): RawScVal {
-  if (!scVal) {
-    return { switch: '' }
+  const result: Record<string, unknown> = {}
+  seen.set(value, result)
+  for (const [key, property] of Object.entries(value)) {
+    if (typeof property !== 'function') {
+      result[key] = toSerializableRawValue(property, undefined, seen)
+    }
   }
-  const switchName =
-    typeof scVal.switch === 'string'
-      ? scVal.switch
-      : (getScValSwitch(scVal) ?? '')
-  return {
-    switch: switchName,
-    value: toCloneSafeValue(getScValValue(scVal)),
-  }
+  return result
 }
 
 function getScValSwitch(scVal: any): string | undefined {
@@ -459,18 +516,18 @@ export function normalizeNode(
     }
 
     case ScValType.SCV_U32: {
-      const value = normalizedScVal.value
+      const numericValue = normalizedScVal.value
       if (
-        typeof value === 'number' &&
-        Number.isInteger(value) &&
-        value >= 0 &&
-        value <= 0xffffffff
+        typeof numericValue === 'number' &&
+        Number.isInteger(numericValue) &&
+        numericValue >= 0 &&
+        numericValue <= 0xffffffff
       ) {
         return {
           kind: 'primitive',
           path,
           scType: 'u32',
-          value,
+          value: numericValue,
           raw: toRaw(scVal),
         } satisfies PrimitiveNode
       }
@@ -478,18 +535,18 @@ export function normalizeNode(
     }
 
     case ScValType.SCV_I32: {
-      const value = normalizedScVal.value
+      const numericValue = normalizedScVal.value
       if (
-        typeof value === 'number' &&
-        Number.isInteger(value) &&
-        value >= -0x80000000 &&
-        value <= 0x7fffffff
+        typeof numericValue === 'number' &&
+        Number.isInteger(numericValue) &&
+        numericValue >= -0x80000000 &&
+        numericValue <= 0x7fffffff
       ) {
         return {
           kind: 'primitive',
           path,
           scType: 'i32',
-          value,
+          value: numericValue,
           raw: toRaw(scVal),
         } satisfies PrimitiveNode
       }
@@ -814,11 +871,11 @@ export function normalizeNode(
     case ScValType.SCV_ADDRESS: {
       try {
         const address = scVal.value as { toString: () => string }
-        const value = address.toString()
+        const addressValue = address.toString()
         let addressType: AddressNode['addressType'] = 'unknown'
 
-        if (typeof value === 'string' && value.length > 0) {
-          const prefix = value[0]
+        if (typeof addressValue === 'string' && addressValue.length > 0) {
+          const prefix = addressValue[0]
           switch (prefix) {
             case 'G':
               addressType = 'account'
@@ -842,7 +899,7 @@ export function normalizeNode(
           kind: 'address',
           path,
           addressType,
-          value,
+          value: addressValue,
           raw: toRaw(scVal),
         } satisfies AddressNode
       } catch {

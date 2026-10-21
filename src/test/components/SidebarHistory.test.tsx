@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sidebar from '../../components/global/Sidebar'
 import { resetStore, useLensStore } from '../../store/lensStore'
 import { formatContractIdShort } from '../../lib/format/formatContractIdShort'
@@ -19,7 +19,18 @@ const makeEntry = (
 
 describe('Sidebar History Panel', () => {
   beforeEach(() => {
+    const storage = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    })
     resetStore()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('renders default tree placeholder when activeNavItem is not history', () => {
@@ -96,6 +107,24 @@ describe('Sidebar History Panel', () => {
     // Now it should show Diff Summary instead of Capture First
     expect(screen.queryByText('Capture First')).toBeNull()
     expect(screen.getByText('Diff Summary')).toBeTruthy()
+  })
+
+  it('warns when a capture stays in memory after browser storage fails', () => {
+    const state = useLensStore.getState()
+    state.setActiveContractId('c1')
+    state.upsertLedgerEntries([makeEntry('key1', 'c1', 'value')])
+
+    render(<Sidebar open={true} onClose={vi.fn()} activeNavItem="history" />)
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Capture Snapshot/i }))
+
+    expect(useLensStore.getState().getSnapshots('c1')).toHaveLength(1)
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Reloading will discard them.',
+    )
   })
 
   it('captures with Ctrl or Command+Shift+S but ignores editable controls', () => {
