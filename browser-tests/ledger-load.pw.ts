@@ -15,23 +15,19 @@ function createContractDataFixture(
       durability: xdr.ContractDataDurability[durability](),
     }),
   )
-  const ledgerEntry = new xdr.LedgerEntry({
-    lastModifiedLedgerSeq: durability === 'persistent' ? 101 : 102,
-    data: xdr.LedgerEntryData.contractData(
-      new xdr.ContractDataEntry({
-        ext: new xdr.ExtensionPoint(0),
-        contract,
-        key,
-        durability: xdr.ContractDataDurability[durability](),
-        val: value,
-      }),
-    ),
-    ext: new xdr.LedgerEntryExt(0),
-  })
+  const entryData = xdr.LedgerEntryData.contractData(
+    new xdr.ContractDataEntry({
+      ext: new xdr.ExtensionPoint(0),
+      contract,
+      key,
+      durability: xdr.ContractDataDurability[durability](),
+      val: value,
+    }),
+  )
 
   return {
     key: ledgerKey.toXDR('base64'),
-    xdr: ledgerEntry.toXDR('base64'),
+    xdr: entryData.toXDR('base64'),
     contractId: Address.contract(contractBytes).toString(),
   }
 }
@@ -68,10 +64,21 @@ test('browser: loads real persistent and temporary contract-data envelopes throu
 
   await page.route('https://rpc-futurenet.stellar.org/**', async (route) => {
     const request = route.request().postDataJSON()
+    if (request.method === 'getLatestLedger') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: { sequence: 103 },
+        }),
+      })
+      return
+    }
+
     expect(request.method).toBe('getLedgerEntries')
-    expect(request.params).toEqual({
-      keys: [persistent.key, temporary.key],
-    })
+    expect(request.params).toEqual({ keys: [persistent.key, temporary.key] })
 
     await route.fulfill({
       status: 200,

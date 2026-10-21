@@ -2,7 +2,7 @@ import * as Comlink from 'comlink'
 import { xdr } from '@stellar/stellar-sdk'
 import { limitDecoderErrorDetail } from '../types/decoder-worker'
 import { normalizeScAddress, normalizeScVal } from './decoder/normalizeScVal'
-import { cloneSafeNode, normalizeNode } from './decoder/normalizeNode'
+import { normalizeNode } from './decoder/normalizeNode'
 import type {
   DecodeScValRequest,
   DecodeScValResult,

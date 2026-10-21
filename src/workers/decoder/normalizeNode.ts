@@ -69,15 +69,30 @@ export interface NormalizeOptions {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function toRawValue(
+function toRaw(scVal: ScVal | null | undefined): RawScVal {
+  if (!scVal) {
+    return { switch: '' }
+  }
+  const switchName = getScValSwitch(scVal) ?? ''
+  const value = getScValValue(scVal)
+  return {
+    switch: switchName,
+    ...(value === undefined
+      ? {}
+      : { value: toSerializableRawValue(value, switchName) }),
+  }
+}
+
+function toSerializableRawValue(
   value: unknown,
-  ancestors = new WeakSet<object>(),
+  switchName?: string,
+  seen = new WeakMap<object, RawValue>(),
 ): RawValue {
   if (
     value === null ||
-    typeof value === 'boolean' ||
+    typeof value === 'string' ||
     typeof value === 'number' ||
-    typeof value === 'string'
+    typeof value === 'boolean'
   ) {
     return value
   }
@@ -86,92 +101,83 @@ function toRawValue(
     return value.toString()
   }
 
+  if (
+    switchName === ScValType.SCV_STRING ||
+    switchName === ScValType.SCV_SYMBOL
+  ) {
+    return stringLikeToString(value)
+  }
+
   if (value instanceof Uint8Array) {
     return Array.from(value)
   }
 
   if (Array.isArray(value)) {
-    if (ancestors.has(value)) {
-      return null
-    }
-
-    ancestors.add(value)
-    const plainArray = value.map((item) => toRawValue(item, ancestors))
-    ancestors.delete(value)
-    return plainArray
+    const existing = seen.get(value)
+    if (existing !== undefined) return existing
+    const result: Array<RawValue> = []
+    seen.set(value, result)
+    result.push(
+      ...value.map((item) => toSerializableRawValue(item, undefined, seen)),
+    )
+    return result
   }
 
   if (typeof value !== 'object') {
     return null
   }
 
-  if (ancestors.has(value)) {
-    return null
+  const existing = seen.get(value)
+  if (existing !== undefined) return existing
+
+  const xdrObject = value as {
+    switch?: () => { name?: string }
+    value?: () => unknown
+    key?: () => unknown
+    val?: () => unknown
+    toString?: () => string
   }
 
-  ancestors.add(value)
-  const plainValue: Record<string, RawValue> = {}
+  if (
+    typeof xdrObject.switch === 'function' &&
+    typeof xdrObject.value === 'function'
+  ) {
+    const rawSwitch = getScValSwitch(value)
+    const result: Record<string, RawValue> = { switch: rawSwitch ?? '' }
+    seen.set(value, result)
+    const rawValue = getScValValue(value)
+    if (rawValue !== undefined) {
+      result.value = toSerializableRawValue(rawValue, rawSwitch, seen)
+    }
+    return result
+  }
 
-  for (const key of Object.keys(value)) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key)
-    if (
-      descriptor &&
-      'value' in descriptor &&
-      typeof descriptor.value !== 'function'
-    ) {
-      plainValue[key] = toRawValue(descriptor.value, ancestors)
+  if (
+    typeof xdrObject.key === 'function' &&
+    typeof xdrObject.val === 'function'
+  ) {
+    const result: Record<string, RawValue> = {}
+    seen.set(value, result)
+    result.key = toSerializableRawValue(xdrObject.key(), undefined, seen)
+    result.val = toSerializableRawValue(xdrObject.val(), undefined, seen)
+    return result
+  }
+
+  if (typeof xdrObject.toString === 'function') {
+    const stringValue = xdrObject.toString()
+    if (stringValue !== '[object Object]') {
+      return stringValue
     }
   }
 
-  ancestors.delete(value)
-  return plainValue
-}
-
-function toRaw(scVal: ScVal | null | undefined): RawScVal {
-  if (!scVal) {
-    return { switch: '' }
+  const result: Record<string, RawValue> = {}
+  seen.set(value, result)
+  for (const [key, property] of Object.entries(value)) {
+    if (typeof property !== 'function') {
+      result[key] = toSerializableRawValue(property, undefined, seen)
+    }
   }
-  const raw: RawScVal = {
-    switch: scVal.switch,
-  }
-  if (scVal.value !== undefined) {
-    raw.value = toRawValue(scVal.value)
-  }
-  return raw
-}
-
-function cloneSafeRaw(raw: RawScVal): RawScVal {
-  return raw.value === undefined
-    ? { switch: raw.switch }
-    : { switch: raw.switch, value: toRawValue(raw.value) }
-}
-
-/**
- * Copies a normalized node tree while ensuring every raw payload is plain data.
- */
-export function cloneSafeNode(node: Node): Node {
-  switch (node.kind) {
-    case 'vec':
-      return {
-        ...node,
-        items: node.items.map(cloneSafeNode),
-        raw: cloneSafeRaw(node.raw),
-      }
-    case 'map':
-      return {
-        ...node,
-        entries: node.entries.map((entry) => ({
-          key: cloneSafeNode(entry.key),
-          value: cloneSafeNode(entry.value),
-        })),
-        raw: cloneSafeRaw(node.raw),
-      }
-    case 'cycle':
-    case 'truncated':
-      return node
-    default:
-      return { ...node, raw: cloneSafeRaw(node.raw) }
-  }
+  return result
 }
 
 function getScValSwitch(scVal: any): string | undefined {
@@ -511,18 +517,18 @@ export function normalizeNode(
     }
 
     case ScValType.SCV_U32: {
-      const value = normalizedScVal.value
+      const numericValue = normalizedScVal.value
       if (
-        typeof value === 'number' &&
-        Number.isInteger(value) &&
-        value >= 0 &&
-        value <= 0xffffffff
+        typeof numericValue === 'number' &&
+        Number.isInteger(numericValue) &&
+        numericValue >= 0 &&
+        numericValue <= 0xffffffff
       ) {
         return {
           kind: 'primitive',
           path,
           scType: 'u32',
-          value,
+          value: numericValue,
           raw: toRaw(scVal),
         } satisfies PrimitiveNode
       }
@@ -530,18 +536,18 @@ export function normalizeNode(
     }
 
     case ScValType.SCV_I32: {
-      const value = normalizedScVal.value
+      const numericValue = normalizedScVal.value
       if (
-        typeof value === 'number' &&
-        Number.isInteger(value) &&
-        value >= -0x80000000 &&
-        value <= 0x7fffffff
+        typeof numericValue === 'number' &&
+        Number.isInteger(numericValue) &&
+        numericValue >= -0x80000000 &&
+        numericValue <= 0x7fffffff
       ) {
         return {
           kind: 'primitive',
           path,
           scType: 'i32',
-          value,
+          value: numericValue,
           raw: toRaw(scVal),
         } satisfies PrimitiveNode
       }
@@ -866,11 +872,11 @@ export function normalizeNode(
     case ScValType.SCV_ADDRESS: {
       try {
         const address = scVal.value as { toString: () => string }
-        const value = address.toString()
+        const addressValue = address.toString()
         let addressType: AddressNode['addressType'] = 'unknown'
 
-        if (typeof value === 'string' && value.length > 0) {
-          const prefix = value[0]
+        if (typeof addressValue === 'string' && addressValue.length > 0) {
+          const prefix = addressValue[0]
           switch (prefix) {
             case 'G':
               addressType = 'account'
@@ -894,7 +900,7 @@ export function normalizeNode(
           kind: 'address',
           path,
           addressType,
-          value,
+          value: addressValue,
           raw: toRaw(scVal),
         } satisfies AddressNode
       } catch {

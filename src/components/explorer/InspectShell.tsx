@@ -29,7 +29,10 @@ export function InspectShell({
       (selected, candidate) => {
         const matchesPath =
           keyPath === candidate.key || keyPath.startsWith(`${candidate.key}.`)
-        if (candidate.contractId !== contractId || !matchesPath) {
+        if (
+          candidate.contractId !== (normalizedContractId || contractId) ||
+          !matchesPath
+        ) {
           return selected
         }
         return !selected || candidate.key.length > selected.key.length
@@ -53,7 +56,10 @@ export function InspectShell({
 
   const handlePinKey = () => {
     if (entry && keyPath) {
-      const added = addToWatchlist(contractId, entry.key)
+      const added = addToWatchlist(
+        normalizedContractId || contractId,
+        entry.key,
+      )
       setWatchlistFeedback(
         added ? 'Added to watchlist.' : 'Already in watchlist.',
       )

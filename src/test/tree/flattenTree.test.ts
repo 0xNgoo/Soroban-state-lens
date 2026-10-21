@@ -60,7 +60,7 @@ describe('flattenTree', () => {
           id: 'root',
           label: 'root',
           node: tree,
-          rawLedgerKeyXdr: 'original-key-xdr',
+          canonicalKey: 'original-key-xdr',
           durability: 'Temporary',
         },
       ],
@@ -68,10 +68,10 @@ describe('flattenTree', () => {
     )
 
     expect(rows[0]).toMatchObject({
-      rawLedgerKeyXdr: 'original-key-xdr',
+      canonicalKey: 'original-key-xdr',
       durability: 'Temporary',
     })
-    expect(rows[1]?.rawLedgerKeyXdr).toBeUndefined()
+    expect(rows[1]?.canonicalKey).toBeUndefined()
     expect(rows[1]?.durability).toBeUndefined()
   })
 

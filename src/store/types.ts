@@ -27,7 +27,10 @@ export interface LedgerEntry {
   contractId: string
   type: 'ContractData' | 'ContractCode' | 'Account' | 'Trustline' | 'Other'
   durability?: 'Persistent' | 'Temporary' | 'Instance'
+  canonicalKey?: string
+  displayKey?: string
   value: unknown
+  displayName?: string
   lastModifiedLedger: number
   expirationLedger?: number
   expired?: boolean
@@ -123,6 +126,8 @@ export interface ContractSlice {
   clearActiveContractId: () => void
   setSelectedKeyPath: (keyPath: string) => void
   clearSelectedKeyPath: () => void
+  /** Drop cached entries of the sample/demo contract (SSL#733). */
+  clearDemoRecords: () => void
 }
 
 export enum ContractLoadStatus {
