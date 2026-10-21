@@ -80,4 +80,45 @@ describe('Sidebar snapshot controls', () => {
     expect(snapshots[0]?.label).toBe('Second snapshot')
     vi.restoreAllMocks()
   })
+
+  it('filters tree placeholders from the filter control', () => {
+    render(
+      <Sidebar
+        open
+        onClose={() => {}}
+        variant="pinned"
+        activeNavItem="explorer"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.change(
+      screen.getByRole('searchbox', { name: 'Filter ledger entries' }),
+      {
+        target: { value: 'WASM' },
+      },
+    )
+
+    expect(screen.getByText('WASM_Cache')).toBeTruthy()
+    expect(screen.queryByText('Contract_Registry')).toBeNull()
+  })
+
+  it('collapses expanded tree placeholders', () => {
+    const store = useLensStore.getState()
+    store.toggleExpanded('sidebar:contract-registry')
+    store.toggleExpanded('sidebar:wasm-cache')
+
+    render(
+      <Sidebar
+        open
+        onClose={() => {}}
+        variant="pinned"
+        activeNavItem="explorer"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+
+    expect(useLensStore.getState().expandedNodes).toEqual([])
+  })
 })

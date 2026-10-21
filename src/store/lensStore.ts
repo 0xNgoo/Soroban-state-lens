@@ -4,6 +4,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { deepClone } from '../lib/deepClone'
 import { getLedgerEntries } from '../lib/network/getLedgerEntries'
+import {
+  decodeLedgerKeyInfo,
+  extractContractValueXdr,
+} from '../lib/network/decodeLedgerEntry'
 import { mapLedgerEntriesToStoreEntries } from '../lib/network/mapLedgerEntriesToStoreEntries'
 import { normalizeContractIdInput } from '../lib/validation/normalizeContractIdInput'
 import {
@@ -538,6 +542,10 @@ const createContractLoadSlice = (
 
         const decodedValuesByKey: Record<string, unknown> = {}
         const decodeErrorReasonsByKey: Record<string, string> = {}
+        const keyInfoByKey: Record<
+          string,
+          ReturnType<typeof decodeLedgerKeyInfo>
+        > = {}
         let workerUnavailableReason: string | null = null
 
         const decodeBatch = async () => {
@@ -547,6 +555,26 @@ const createContractLoadSlice = (
             for (const entry of entries) {
               if (isRequestStale()) {
                 return
+              }
+
+              const keyInfo = decodeLedgerKeyInfo(entry.key)
+              keyInfoByKey[entry.key] = keyInfo
+              if (keyInfo.type !== 'ContractData') {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
+                continue
+              }
+
+              const extractedValue = extractContractValueXdr(entry.xdr)
+              if (!extractedValue.supported) {
+                decodedValuesByKey[entry.key] = {
+                  kind: 'raw-xdr',
+                  xdr: entry.xdr,
+                }
+                decodeErrorReasonsByKey[entry.key] = extractedValue.reason
+                continue
               }
 
               if (
@@ -576,7 +604,7 @@ const createContractLoadSlice = (
 
               try {
                 const result = await activeDecoderWorker.decodeScVal({
-                  xdr: entry.xdr,
+                  xdr: extractedValue.valueXdr,
                 })
                 if (isRequestStale()) {
                   return
@@ -630,6 +658,7 @@ const createContractLoadSlice = (
           latestLedger,
           decodedValuesByKey,
           decodeErrorReasonsByKey,
+          keyInfoByKey,
         })
 
         set((state) => ({

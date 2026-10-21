@@ -28,6 +28,7 @@ export interface LedgerEntry {
   type: 'ContractData' | 'ContractCode' | 'Account' | 'Trustline' | 'Other'
   durability?: 'Persistent' | 'Temporary' | 'Instance'
   value: unknown
+  displayName?: string
   lastModifiedLedger: number
   expirationLedger?: number
   expired?: boolean

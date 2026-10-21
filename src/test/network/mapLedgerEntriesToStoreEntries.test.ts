@@ -61,13 +61,17 @@ describe('mapLedgerEntriesToStoreEntries', () => {
       decodedValuesByKey: {
         'ledger-key-1': { kind: 'primitive', scType: 'string', value: 'hello' },
       },
+      keyInfoByKey: {
+        'ledger-key-1': { type: 'ContractData', displayName: 'counter' },
+      },
     })
 
     expect(result).toEqual([
       {
-        key: 'CONTRACT_1::Other::ledger-key-1',
+        key: 'CONTRACT_1::ContractData::ledger-key-1',
         contractId: 'CONTRACT_1',
-        type: 'Other',
+        type: 'ContractData',
+        displayName: 'counter',
         value: { kind: 'primitive', scType: 'string', value: 'hello' },
         lastModifiedLedger: 42,
         expirationLedger: 99,

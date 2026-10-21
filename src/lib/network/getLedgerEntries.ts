@@ -121,7 +121,7 @@ export async function getLedgerEntries(
         attempts += 1
         const payload = buildJsonRpcRequest(
           'getLedgerEntries',
-          [keys],
+          { keys },
           requestId,
         )
         const requestController = new AbortController()

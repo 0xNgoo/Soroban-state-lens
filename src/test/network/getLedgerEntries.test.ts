@@ -544,7 +544,7 @@ describe('getLedgerEntries', () => {
         throw new Error('Expected fetch request options')
       }
       const requestBody = JSON.parse(requestInit.body as string)
-      expect(requestBody.params[0]).toEqual(['key1', 'key2', 'key3'])
+      expect(requestBody.params).toEqual({ keys: ['key1', 'key2', 'key3'] })
 
       expect(result).toEqual({
         entries: [{ key: 'key1', xdr: 'xdr1', lastModifiedLedgerSeq: 100 }],
@@ -578,7 +578,7 @@ describe('getLedgerEntries', () => {
         throw new Error('Expected fetch request options')
       }
       const requestBody = JSON.parse(requestInit.body as string)
-      expect(requestBody.params[0]).toEqual(['key1'])
+      expect(requestBody.params).toEqual({ keys: ['key1'] })
     })
 
     it('handles empty keys array after deduplication', async () => {

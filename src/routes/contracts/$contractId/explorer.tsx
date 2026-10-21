@@ -201,7 +201,7 @@ function ContractExplorer() {
         return [
           {
             id: entry.key,
-            label: entry.key,
+            label: entry.displayName ?? entry.key,
             node: entry.value,
             expired: entry.expired,
           },
