@@ -182,7 +182,7 @@ describe('contract exploration smoke flow', () => {
     await router.navigate({
       to: '/contracts/$contractId/explorer',
       params: { contractId },
-      search: { keys: entry.key },
+      search: { keys: entry.key, mode: 'live' },
     })
 
     await waitFor(() => {

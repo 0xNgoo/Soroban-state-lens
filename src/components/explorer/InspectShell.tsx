@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Card, Heading, IconButton } from '@stellar/design-system'
 import { Link } from '@tanstack/react-router'
+import { isSampleContractId } from '../../lib/demoContract'
 import { useLensStore } from '../../store/lensStore'
 import { buildInspectBreadcrumb } from './buildInspectBreadcrumb'
 import type { LedgerEntry } from '../../store/types'
@@ -103,7 +104,12 @@ export function InspectShell({
           <Link
             to="/contracts/$contractId/explorer"
             params={{ contractId }}
-            search={{ keys: '' }}
+            search={{
+              keys: '',
+              mode: isSampleContractId(normalizedContractId || contractId)
+                ? 'demo'
+                : 'live',
+            }}
             aria-label="Back to explorer"
             className="text-sm text-primary hover:underline font-mono whitespace-nowrap"
           >
