@@ -546,7 +546,12 @@ describe('getLedgerEntries', () => {
         throw new Error('Expected fetch request options')
       }
       const requestBody = JSON.parse(requestInit.body as string)
-      expect(requestBody.params).toEqual({ keys: ['key1', 'key2', 'key3'] })
+      expect(requestBody).toEqual({
+        jsonrpc: '2.0',
+        method: 'getLedgerEntries',
+        params: { keys: ['key1', 'key2', 'key3'] },
+        id: 1,
+      })
 
       expect(result).toEqual({
         entries: [{ key: 'key1', xdr: 'xdr1', lastModifiedLedgerSeq: 100 }],

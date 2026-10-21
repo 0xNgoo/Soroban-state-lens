@@ -2,6 +2,7 @@ import { xdr } from '@stellar/stellar-sdk'
 import { normalizeContractIdInput } from '../validation/normalizeContractIdInput'
 import { makeLedgerEntryKey } from '../storage/makeLedgerEntryKey'
 import { formatStorageKeyPreview } from '../format/formatStorageKeyPreview'
+import { decodeLedgerKeyInfo } from './decodeLedgerEntry'
 import type {
   DecodedLedgerEntryMetadata,
   LedgerKeyInfo,
@@ -67,8 +68,13 @@ export function mapLedgerEntriesToStoreEntries(
   const contractId = normalizeContractIdInput(params.contractId)
   return entries.map((entry) => {
     const keyInfo = keyInfoByKey[entry.key]
+    const decodedKeyInfo = decodeLedgerKeyInfo(entry.key)
     const metadata = metadataByKey[entry.key]
-    const type = keyInfo?.type ?? metadata?.type ?? 'Other'
+    const type =
+      decodedKeyInfo.type !== 'Other'
+        ? decodedKeyInfo.type
+        : (keyInfo?.type ?? metadata?.type ?? decodedKeyInfo.type)
+    const displayName = decodedKeyInfo.displayName ?? keyInfo?.displayName
     const durability = decodeDurability(entry.key)
     const decodedStorageKey = decodedStorageKeysByKey[entry.key]
     const last = entry.lastModifiedLedgerSeq
@@ -95,7 +101,7 @@ export function mapLedgerEntriesToStoreEntries(
       contractId,
       type,
       ...(durability ? { durability } : {}),
-      ...(keyInfo?.displayName ? { displayName: keyInfo.displayName } : {}),
+      ...(displayName ? { displayName } : {}),
       canonicalKey: entry.key,
       ...(decodedStorageKey
         ? { displayKey: formatStorageKeyPreview(decodedStorageKey) }

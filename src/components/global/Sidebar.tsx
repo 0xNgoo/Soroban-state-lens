@@ -360,6 +360,7 @@ function HistoryPanel() {
     null,
   )
   const [nextSnapshotId, setNextSnapshotId] = useState<string | null>(null)
+  const [captureStatus, setCaptureStatus] = useState<string | null>(null)
 
   const ledgerData = useLensStore((state) => state.ledgerData)
   const currentLedgerSequence = useLensStore(
@@ -374,13 +375,23 @@ function HistoryPanel() {
   }, [ledgerData, activeContractId])
 
   const handleCapture = () => {
-    if (!activeContractId || ledgerEntries.length === 0) return
+    if (!activeContractId) {
+      setCaptureStatus('No snapshot captured: load a contract first.')
+      return
+    }
+    if (ledgerEntries.length === 0) {
+      setCaptureStatus(
+        'No snapshot captured: query keys and load contract entries successfully to enable capturing.',
+      )
+      return
+    }
     const entriesDict: Record<string, (typeof ledgerEntries)[0]> = {}
     ledgerEntries.forEach((entry) => {
       entriesDict[entry.key] = entry
     })
     const label = `Snapshot #${snapshots.length + 1}`
     addSnapshot(activeContractId, entriesDict, currentLedgerSequence, label)
+    setCaptureStatus(`Captured ${label}.`)
   }
 
   const handleClearSnapshots = () => {
@@ -501,6 +512,13 @@ function HistoryPanel() {
 
   return (
     <div className="flex flex-col gap-5 font-mono select-none">
+      <p
+        role="status"
+        aria-live="polite"
+        className="text-[10px] text-text-muted text-center"
+      >
+        {captureStatus ?? ''}
+      </p>
       {snapshotPersistenceFailed && snapshots.length > 0 && (
         <p
           role="alert"
@@ -537,10 +555,9 @@ function HistoryPanel() {
             onClick={handleCapture}
             aria-keyshortcuts="Control+Shift+S Meta+Shift+S"
             title="Keyboard shortcut: Ctrl+Shift+S or Command+Shift+S"
-            disabled={ledgerEntries.length === 0}
             className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               ledgerEntries.length === 0
-                ? 'bg-white/5 border border-border-dark/40 text-text-muted cursor-not-allowed opacity-50'
+                ? 'bg-white/5 border border-border-dark/40 text-text-muted hover:bg-white/10'
                 : 'bg-primary text-white hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_15px_rgba(165,87,255,0.25)]'
             }`}
           >
@@ -550,7 +567,6 @@ function HistoryPanel() {
           <p className="text-[10px] text-text-muted text-center">
             Shortcut: Ctrl/⌘ + Shift + S
           </p>
-
           {ledgerEntries.length === 0 && (
             <p className="text-[10px] text-amber-500/80 text-center leading-relaxed">
               * Query keys and load contract entries successfully to enable
@@ -674,10 +690,9 @@ function HistoryPanel() {
                 onClick={handleCapture}
                 aria-keyshortcuts="Control+Shift+S Meta+Shift+S"
                 title="Keyboard shortcut: Ctrl+Shift+S or Command+Shift+S"
-                disabled={ledgerEntries.length === 0}
                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   ledgerEntries.length === 0
-                    ? 'bg-white/5 border border-border-dark/40 text-text-muted cursor-not-allowed opacity-50'
+                    ? 'bg-white/5 border border-border-dark/40 text-text-muted hover:bg-white/10'
                     : 'bg-primary text-white hover:bg-primary-hover shadow-[0_0_15px_rgba(165,87,255,0.2)]'
                 }`}
               >

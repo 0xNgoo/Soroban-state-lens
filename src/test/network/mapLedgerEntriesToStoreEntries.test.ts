@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { xdr } from '@stellar/stellar-sdk'
 import { mapLedgerEntriesToStoreEntries } from '../../lib/network/mapLedgerEntriesToStoreEntries'
+import {
+  makeAccountFixture,
+  makeContractCodeFixture,
+  makeContractDataFixture,
+} from './ledgerEntryFixtures'
 
 function makeContractDataKey(durability: 'persistent' | 'temporary'): string {
   const ledgerKey = xdr.LedgerKey.contractData(
@@ -78,6 +83,38 @@ describe('mapLedgerEntriesToStoreEntries', () => {
         expirationLedger: 99,
         rawXdr: 'xdr-1',
       },
+    ])
+  })
+
+  it('classifies SDK-built ledger keys by their XDR variants', () => {
+    const contractDataKey = makeContractDataFixture().keyXdr
+    const contractCodeKey = makeContractCodeFixture().keyXdr
+    const accountKey = makeAccountFixture().keyXdr
+    const accountId = xdr.AccountId.publicKeyTypeEd25519(Buffer.alloc(32))
+    const trustlineKey = xdr.LedgerKey.trustline(
+      new xdr.LedgerKeyTrustLine({
+        accountId,
+        asset: xdr.TrustLineAsset.assetTypeNative(),
+      }),
+    ).toXDR('base64')
+
+    const mapped = mapLedgerEntriesToStoreEntries({
+      contractId: 'CONTRACT_XDR',
+      entries: [
+        { key: contractDataKey, xdr: 'contract-data-entry' },
+        { key: contractCodeKey, xdr: 'contract-code-entry' },
+        { key: accountKey, xdr: 'account-entry' },
+        { key: trustlineKey, xdr: 'trustline-entry' },
+        { key: 'malformed-key', xdr: 'malformed-entry' },
+      ],
+    })
+
+    expect(mapped.map((entry) => entry.type)).toEqual([
+      'ContractData',
+      'ContractCode',
+      'Account',
+      'Trustline',
+      'Other',
     ])
   })
 
