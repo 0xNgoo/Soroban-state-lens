@@ -231,6 +231,7 @@ function ContractExplorer() {
             id: entry.key,
             label: entry.key,
             node: entry.value,
+            expired: entry.expired,
           },
         ]
       }),
