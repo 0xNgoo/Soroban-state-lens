@@ -29,5 +29,8 @@ jobs:
       - name: Run Build
         run: bun run build
 
+      - name: Check Bundle Size Budgets
+        run: bun run check:bundle-size
+
       - name: Run Test
         run: bun run test

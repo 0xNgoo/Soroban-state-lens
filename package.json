@@ -23,6 +23,7 @@
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
     "check:env": "node scripts/check-env.js",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "issues:build": "node scripts/github-issues.mjs build",
     "issues:list": "node scripts/github-issues.mjs list",
     "issues:labels": "node scripts/github-issues.mjs labels",
