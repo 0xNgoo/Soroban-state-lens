@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Card, Heading, IconButton } from '@stellar/design-system'
 import { Link } from '@tanstack/react-router'
+import { isSampleContractId } from '../../lib/demoContract'
 import { useLensStore } from '../../store/lensStore'
 import { buildInspectBreadcrumb } from './buildInspectBreadcrumb'
+import { LocalDemoNotice } from './LocalDemoNotice'
 import type { LedgerEntry } from '../../store/types'
 
 interface InspectShellProps {
@@ -118,6 +120,10 @@ export function InspectShell({
           />
         </div>
       </header>
+
+      {isSampleContractId(normalizedContractId || contractId) && (
+        <LocalDemoNotice />
+      )}
 
       {watchlistFeedback ? (
         <p role="status" aria-live="polite" className="text-sm text-text-muted">
