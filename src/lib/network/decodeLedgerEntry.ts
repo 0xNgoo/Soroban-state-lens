@@ -1,5 +1,7 @@
-import { xdr } from '@stellar/stellar-sdk'
-import type { LedgerEntry } from '../../store/types'
+import { Address, xdr } from '@stellar/stellar-sdk'
+
+import type { LedgerEntry as RpcLedgerEntry } from './getLedgerEntries'
+import type { LedgerEntry as StoreLedgerEntry } from '../../store/types'
 
 interface XdrSwitch {
   name: string
@@ -12,8 +14,10 @@ interface XdrScVal {
 }
 
 interface XdrContractData {
+  contract: () => unknown
   key: () => XdrScVal
   val: () => XdrScVal
+  durability: () => XdrSwitch
 }
 
 interface XdrLedgerEntryData {
@@ -23,7 +27,11 @@ interface XdrLedgerEntryData {
 
 interface XdrLedgerKey {
   switch: () => XdrSwitch
-  contractData: () => { key: () => XdrScVal }
+  contractData: () => {
+    contract: () => unknown
+    key: () => XdrScVal
+    durability: () => XdrSwitch
+  }
 }
 
 export type ExtractContractValueResult =
@@ -35,8 +43,93 @@ export type ExtractContractValueResult =
     }
 
 export interface LedgerKeyInfo {
-  type: LedgerEntry['type']
+  type: StoreLedgerEntry['type']
   displayName?: string
+  contractId?: string
+  durability?: StoreLedgerEntry['durability']
+}
+
+export interface DecodedLedgerEntryMetadata {
+  type: StoreLedgerEntry['type']
+  contractId?: string
+  durability?: StoreLedgerEntry['durability']
+  storageKeyXdr?: string
+  valueXdr?: string
+}
+
+function contractAddressToId(address: unknown): string {
+  return Address.fromScVal(xdr.ScVal.scvAddress(address)).toString()
+}
+
+function decodeDurability(durability: {
+  name: string
+}): 'Persistent' | 'Temporary' {
+  switch (durability.name) {
+    case 'persistent':
+      return 'Persistent'
+    case 'temporary':
+      return 'Temporary'
+    default:
+      throw new Error(
+        `Unsupported contract data durability: ${durability.name}`,
+      )
+  }
+}
+
+/**
+ * Decodes the ledger key and entry data XDR returned by getLedgerEntries.
+ */
+export function decodeLedgerEntryMetadata(
+  entry: RpcLedgerEntry,
+): DecodedLedgerEntryMetadata {
+  const ledgerKey = xdr.LedgerKey.fromXDR(entry.key, 'base64')
+  const entryData = xdr.LedgerEntryData.fromXDR(entry.xdr, 'base64')
+  const keyType = ledgerKey.switch().name as string
+  const dataType = entryData.switch().name as string
+
+  if (keyType === 'contractData') {
+    if (dataType !== 'contractData') {
+      throw new Error('Contract-data ledger key does not match entry data')
+    }
+
+    const keyData = ledgerKey.contractData()
+    const entryContractData = entryData.contractData()
+    const contractId = contractAddressToId(keyData.contract())
+    const entryContractId = contractAddressToId(entryContractData.contract())
+    const keyDurability = decodeDurability(keyData.durability())
+    const entryDurability = decodeDurability(entryContractData.durability())
+    const storageKeyXdr = keyData.key().toXDR('base64') as string
+    const entryKeyXdr = entryContractData.key().toXDR('base64') as string
+
+    if (
+      contractId !== entryContractId ||
+      keyDurability !== entryDurability ||
+      storageKeyXdr !== entryKeyXdr
+    ) {
+      throw new Error('Contract-data ledger key does not match entry data')
+    }
+
+    return {
+      type: 'ContractData',
+      contractId,
+      durability: keyDurability,
+      storageKeyXdr,
+      valueXdr: entryContractData.val().toXDR('base64') as string,
+    }
+  }
+
+  const typeByKey: Record<string, StoreLedgerEntry['type']> = {
+    account: 'Account',
+    trustline: 'Trustline',
+    contractCode: 'ContractCode',
+  }
+
+  const type = typeByKey[keyType] ?? 'Other'
+  if (type !== 'Other' && dataType !== keyType) {
+    throw new Error(`${keyType} ledger key does not match entry data`)
+  }
+
+  return { type }
 }
 
 /**
@@ -69,8 +162,8 @@ export function extractContractValueXdr(
 }
 
 /**
- * Classifies a serialized LedgerKey by its XDR variant and reads a readable
- * root label from ContractData symbol/string keys when available.
+ * Classifies a serialized LedgerKey and reads a readable label from
+ * ContractData symbol/string keys when available.
  */
 export function decodeLedgerKeyInfo(ledgerKeyXdr: string): LedgerKeyInfo {
   try {
@@ -82,7 +175,8 @@ export function decodeLedgerKeyInfo(ledgerKeyXdr: string): LedgerKeyInfo {
 
     switch (variant) {
       case 'contractData': {
-        const key = ledgerKey.contractData().key()
+        const keyData = ledgerKey.contractData()
+        const key = keyData.key()
         const keyType = key.switch().name
         const value = key.value()
         const displayName =
@@ -100,6 +194,8 @@ export function decodeLedgerKeyInfo(ledgerKeyXdr: string): LedgerKeyInfo {
               : undefined
         return {
           type: 'ContractData',
+          contractId: contractAddressToId(keyData.contract()),
+          durability: decodeDurability(keyData.durability()),
           ...(keyType === 'scvSymbol' || keyType === 'scvString'
             ? { displayName }
             : {}),

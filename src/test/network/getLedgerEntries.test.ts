@@ -66,7 +66,9 @@ describe('getLedgerEntries', () => {
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: expect.stringContaining('"method":"getLedgerEntries"'),
+          body: expect.stringContaining(
+            '"method":"getLedgerEntries","params":{"keys":["key1","key2"]}',
+          ),
         }),
       )
 
