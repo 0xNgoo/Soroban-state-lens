@@ -19,11 +19,13 @@
     "build": "vite build && tsc",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "test:worker-browser": "node scripts/test-decoder-worker-browser.mjs",
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
     "check:env": "node scripts/check-env.js",
+    "smoke:ledger-read": "node scripts/ledger-read-smoke.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "issues:build": "node scripts/github-issues.mjs build",
     "issues:list": "node scripts/github-issues.mjs list",
@@ -48,6 +50,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tanstack/devtools-vite": "^0.3.11",
     "@tanstack/eslint-config": "^0.3.0",
     "@testing-library/dom": "^10.4.0",

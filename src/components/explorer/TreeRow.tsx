@@ -209,6 +209,11 @@ export function TreeRow({
         <span className="font-mono text-[10px] uppercase text-primary border border-primary/30 rounded px-1 py-0.5">
           {typeBadge(row)}
         </span>
+        {row.durability ? (
+          <span className="font-mono text-[10px] uppercase text-text-muted border border-white/10 rounded px-1 py-0.5">
+            {row.durability}
+          </span>
+        ) : null}
         {row.expired ? (
           <span className="font-mono text-[10px] uppercase text-red-300 border border-red-400/40 rounded px-1 py-0.5">
             Expired

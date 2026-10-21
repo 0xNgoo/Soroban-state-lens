@@ -35,8 +35,9 @@ const SearchLandingScreen = () => {
 
   const handleLoadSampleContract = () => {
     navigate({
-      to: '/contracts/$contractId',
+      to: '/contracts/$contractId/explorer',
       params: { contractId: SAMPLE_CONTRACT_ID },
+      search: { keys: '', mode: 'demo' },
     })
   }
 

@@ -139,10 +139,7 @@ export async function getLedgerEntries(
           throw new AbortError()
         }
         signal?.addEventListener('abort', onCallerAbort, { once: true })
-        const timeoutId = setTimeout(
-          () => requestController.abort(),
-          timeoutMs,
-        )
+        const timeoutId = setTimeout(() => requestController.abort(), timeoutMs)
 
         let response: Response
         try {

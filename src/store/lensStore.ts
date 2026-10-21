@@ -512,16 +512,31 @@ const createContractLoadSlice = (
         activeController.abort()
       }
 
+      if (isSampleContractId(contractId)) {
+        activeController = null
+        const hasDemoEntries = Object.values(get().ledgerData).some((entry) =>
+          isSampleContractId(entry.contractId),
+        )
+        set(() => ({
+          activeContractId: contractId,
+          contractLoadStatus: hasDemoEntries
+            ? ContractLoadStatus.SUCCESS
+            : ContractLoadStatus.EMPTY,
+          contractLoadError: null,
+          contractLoadErrorCode: null,
+          contractLoadAttemptCount: null,
+        }))
+        return
+      }
+
       const controller = new AbortController()
       activeController = controller
       const { signal } = controller
       const isRequestStale = () =>
         currentRequestId !== requestId || signal.aborted
-      // Defense in depth (SSL#733): a direct loadContract(live) without a
-      // preceding setActiveContractId(live) must not retain demo records.
-      if (!isSampleContractId(contractId)) {
-        get().clearDemoRecords()
-      }
+      // Defense in depth (SSL#733): a direct live load without a preceding
+      // setActiveContractId(live) must not retain demo records.
+      get().clearDemoRecords()
       set(() => ({
         activeContractId: contractId,
         contractLoadStatus: ContractLoadStatus.LOADING,
@@ -775,7 +790,7 @@ const createContractLoadSlice = (
       const state = get()
       const contractId = state.activeContractId
 
-      if (!contractId) {
+      if (!contractId || isSampleContractId(contractId)) {
         return
       }
 

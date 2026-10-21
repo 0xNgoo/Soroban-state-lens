@@ -47,6 +47,25 @@ Soroban stores data in the ledger as ScVal (Stellar Contract Values) within Cont
 4. Start the development server:  
    `npm run dev` or `bun run dev`
 
+### **Read-only Ledger RPC Smoke Check**
+
+To verify a live RPC endpoint with one known-present and one known-absent base64
+LedgerKey XDR, run:
+
+```sh
+bun run smoke:ledger-read -- <rpc-url> <present-ledger-key-xdr> <absent-ledger-key-xdr>
+```
+
+This command only calls `getLedgerEntries`, verifies both key results and the
+returned latest ledger, and exits with an error for RPC failures such as
+`-32602`. It never submits transactions.
+
+### **Browser Worker Regression**
+
+Install Chromium once with `bunx playwright install chromium`, then run
+`bun run test:browser` to exercise nested contract-data values through a real
+Comlink worker in the browser.
+
 ## **🛠 Project Architecture**
 
 The project is split into three main layers:
